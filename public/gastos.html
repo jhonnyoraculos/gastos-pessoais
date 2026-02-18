@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gastos Pessoais | Gastos</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="/js/ui.js" defer></script>
+    <script src="/js/gastos.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-badge">GP</div>
+          <div>
+            <h1>Gastos Pessoais</h1>
+            <small>Controle financeiro</small>
+          </div>
+        </div>
+        <nav class="nav-links">
+          <a class="nav-link" href="/index.html"><span class="nav-icon"></span>Dashboard</a>
+          <a class="nav-link active" href="/gastos.html"><span class="nav-icon"></span>Gastos</a>
+          <a class="nav-link" href="/config.html"><span class="nav-icon"></span>Configurações</a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <header class="topbar">
+          <div>
+            <h2>Cadastro e gestão de gastos</h2>
+            <div class="topbar-subtitle">Adicione, edite, filtre e acompanhe seus lançamentos</div>
+          </div>
+          <div class="topbar-actions">
+            <a class="btn btn-secondary" href="/index.html">Voltar ao dashboard</a>
+          </div>
+        </header>
+
+        <main class="content-grid">
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Novo gasto</h3>
+            </div>
+            <form id="expenseForm" class="form-grid">
+              <div class="field">
+                <label for="expenseDate">Data</label>
+                <input id="expenseDate" type="date" required />
+              </div>
+              <div class="field">
+                <label for="expenseAmount">Valor (R$)</label>
+                <input id="expenseAmount" type="number" min="0.01" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="expenseDescription">Descrição</label>
+                <input id="expenseDescription" type="text" maxlength="180" required />
+              </div>
+              <div class="field">
+                <label for="expenseCategory">Categoria</label>
+                <select id="expenseCategory" required></select>
+              </div>
+              <div class="field">
+                <label for="expenseType">Tipo/Classificação</label>
+                <select id="expenseType" required>
+                  <option value="Essencial">Essencial</option>
+                  <option value="Besteira">Besteira</option>
+                  <option value="Investimento">Investimento</option>
+                  <option value="Lazer">Lazer</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="expenseMethod">Método</label>
+                <select id="expenseMethod" required>
+                  <option value="Pix">Pix</option>
+                  <option value="Cartão">Cartão</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <div class="field" style="grid-column: span 2">
+                <label for="expenseNotes">Observações</label>
+                <textarea id="expenseNotes" maxlength="1200" placeholder="Opcional"></textarea>
+              </div>
+              <div class="field" style="grid-column: span 2">
+                <label>Nova categoria (inline)</label>
+                <div class="inline-group">
+                  <input id="newCategoryName" type="text" maxlength="80" placeholder="Ex.: Farmácia" />
+                  <button type="button" id="newCategoryBtn" class="btn btn-secondary">Criar</button>
+                </div>
+              </div>
+              <div class="action-row" style="grid-column: 1 / -1">
+                <button type="submit" class="btn btn-primary">Salvar gasto</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Lista de gastos</h3>
+              <div class="topbar-actions">
+                <input id="listMonth" type="month" />
+                <input id="searchInput" type="text" placeholder="Buscar por descrição/observação" />
+                <select id="filterCategory">
+                  <option value="">Todas categorias</option>
+                </select>
+                <select id="filterType">
+                  <option value="">Todos tipos</option>
+                  <option value="Essencial">Essencial</option>
+                  <option value="Besteira">Besteira</option>
+                  <option value="Investimento">Investimento</option>
+                  <option value="Lazer">Lazer</option>
+                  <option value="Outros">Outros</option>
+                </select>
+                <button id="applyFiltersBtn" class="btn btn-secondary" type="button">Aplicar</button>
+                <button id="clearFiltersBtn" class="btn btn-ghost" type="button">Limpar</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Tipo</th>
+                    <th>Método</th>
+                    <th>Valor</th>
+                    <th>Observações</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="expensesBody">
+                  <tr>
+                    <td class="empty-row" colspan="8">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-header" style="margin-top: 12px">
+              <div id="listMeta" class="footer-note"></div>
+              <button id="loadMoreBtn" class="btn btn-secondary" type="button">Carregar mais</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="modal" id="editExpenseModal" aria-hidden="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <h3>Editar gasto</h3>
+            <p>Atualize os dados do lançamento.</p>
+          </div>
+          <button class="close-btn" data-close-modal="editExpenseModal">×</button>
+        </div>
+        <form id="editExpenseForm" class="form-grid two-cols">
+          <input id="editExpenseId" type="hidden" />
+          <div class="field">
+            <label for="editDate">Data</label>
+            <input id="editDate" type="date" required />
+          </div>
+          <div class="field">
+            <label for="editAmount">Valor</label>
+            <input id="editAmount" type="number" min="0.01" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="editDescription">Descrição</label>
+            <input id="editDescription" type="text" maxlength="180" required />
+          </div>
+          <div class="field">
+            <label for="editCategory">Categoria</label>
+            <select id="editCategory" required></select>
+          </div>
+          <div class="field">
+            <label for="editType">Tipo/Classificação</label>
+            <select id="editType" required>
+              <option value="Essencial">Essencial</option>
+              <option value="Besteira">Besteira</option>
+              <option value="Investimento">Investimento</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="editMethod">Método</label>
+            <select id="editMethod" required>
+              <option value="Pix">Pix</option>
+              <option value="Cartão">Cartão</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: 1 / -1">
+            <label for="editNotes">Observações</label>
+            <textarea id="editNotes" maxlength="1200"></textarea>
+          </div>
+          <div class="action-row" style="grid-column: 1 / -1">
+            <button type="button" class="btn btn-ghost" data-close-modal="editExpenseModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-card">Carregando...</div>
+    </div>
+  </body>
+</html>

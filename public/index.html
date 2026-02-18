@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gastos Pessoais | Dashboard</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+    <script src="/js/ui.js" defer></script>
+    <script src="/js/dashboard.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-badge">GP</div>
+          <div>
+            <h1>Gastos Pessoais</h1>
+            <small>Controle financeiro</small>
+          </div>
+        </div>
+        <nav class="nav-links">
+          <a class="nav-link active" href="/index.html"><span class="nav-icon"></span>Dashboard</a>
+          <a class="nav-link" href="/gastos.html"><span class="nav-icon"></span>Gastos</a>
+          <a class="nav-link" href="/config.html"><span class="nav-icon"></span>Configurações</a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <header class="topbar">
+          <div>
+            <h2>Dashboard Mensal</h2>
+            <div class="topbar-subtitle">Visão de gastos e percentuais baseados no salário</div>
+          </div>
+          <div class="topbar-actions">
+            <input id="monthSelect" type="month" />
+            <select id="typeFilter">
+              <option value="">Todos os tipos</option>
+              <option value="Essencial">Essencial</option>
+              <option value="Besteira">Besteira</option>
+              <option value="Investimento">Investimento</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Outros">Outros</option>
+            </select>
+            <select id="categoryFilter">
+              <option value="">Todas categorias</option>
+            </select>
+            <a href="/gastos.html" class="btn btn-primary">+ Adicionar gasto</a>
+          </div>
+        </header>
+
+        <main class="content-grid">
+          <section class="cards-grid">
+            <article class="card">
+              <div class="metric-label">Salário total do mês</div>
+              <div class="metric-value" id="metricSalaryTotal">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Gasto do mês</div>
+              <div class="metric-value" id="metricSpendMonth">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">% do salário gasto</div>
+              <div class="metric-value" id="metricSalaryPercent">-</div>
+              <div class="metric-hint" id="salaryCta"></div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Sobra estimada</div>
+              <div class="metric-value" id="metricEstimatedLeft">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Orçamento mensal</div>
+              <div class="metric-value" id="metricBudget">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Saldo do orçamento</div>
+              <div class="metric-value" id="metricBudgetLeft">-</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Gasto hoje</div>
+              <div class="metric-value" id="metricSpendToday">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Gasto na semana</div>
+              <div class="metric-value" id="metricSpendWeek">R$ 0,00</div>
+            </article>
+          </section>
+
+          <section class="charts-grid">
+            <article class="chart-card">
+              <h3>Distribuição do gasto por tipo</h3>
+              <div class="chart-wrap"><canvas id="chartTypeSpend"></canvas></div>
+            </article>
+            <article class="chart-card">
+              <h3>% do salário por tipo</h3>
+              <div class="chart-wrap"><canvas id="chartTypeSalary"></canvas></div>
+            </article>
+            <article class="chart-card">
+              <h3>Gastos por dia no mês</h3>
+              <div class="chart-wrap"><canvas id="chartDaily"></canvas></div>
+            </article>
+            <article class="chart-card">
+              <h3>Top categorias do mês</h3>
+              <div class="chart-wrap"><canvas id="chartCategory"></canvas></div>
+            </article>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Últimos 10 gastos</h3>
+              <div id="lastRefreshAt" class="footer-note"></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Tipo</th>
+                    <th>Método</th>
+                    <th>Valor</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="latestExpensesBody">
+                  <tr>
+                    <td class="empty-row" colspan="7">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="modal" id="onboardingModal" aria-hidden="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <h3>Configure seu salário para começar</h3>
+            <p>Sem salário definido os percentuais não podem ser calculados.</p>
+          </div>
+        </div>
+        <form id="onboardingForm" class="form-grid two-cols">
+          <div class="field">
+            <label for="onboardingNetSalary">Salário líquido (R$)</label>
+            <input id="onboardingNetSalary" type="number" step="0.01" min="0" required />
+          </div>
+          <div class="field">
+            <label for="onboardingExtraIncome">Renda extra (R$)</label>
+            <input id="onboardingExtraIncome" type="number" step="0.01" min="0" value="0" />
+          </div>
+          <div class="field">
+            <label for="onboardingPayday">Dia do pagamento (1-28)</label>
+            <input id="onboardingPayday" type="number" min="1" max="28" value="1" />
+          </div>
+          <div class="field">
+            <label for="onboardingBudget">Orçamento mensal (R$)</label>
+            <input id="onboardingBudget" type="number" step="0.01" min="0" value="0" />
+          </div>
+          <div class="action-row" style="grid-column: 1 / -1">
+            <button type="submit" class="btn btn-primary">Salvar e continuar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="editExpenseModal" aria-hidden="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <h3>Editar gasto</h3>
+            <p>Atualize os campos e salve.</p>
+          </div>
+          <button class="close-btn" data-close-modal="editExpenseModal">×</button>
+        </div>
+        <form id="editExpenseForm" class="form-grid two-cols">
+          <input id="editExpenseId" type="hidden" />
+          <div class="field">
+            <label for="editDate">Data</label>
+            <input id="editDate" type="date" required />
+          </div>
+          <div class="field">
+            <label for="editAmount">Valor</label>
+            <input id="editAmount" type="number" min="0.01" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="editDescription">Descrição</label>
+            <input id="editDescription" type="text" maxlength="180" required />
+          </div>
+          <div class="field">
+            <label for="editCategory">Categoria</label>
+            <select id="editCategory" required></select>
+          </div>
+          <div class="field">
+            <label for="editType">Tipo/Classificação</label>
+            <select id="editType" required>
+              <option value="Essencial">Essencial</option>
+              <option value="Besteira">Besteira</option>
+              <option value="Investimento">Investimento</option>
+              <option value="Lazer">Lazer</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="editMethod">Método</label>
+            <select id="editMethod" required>
+              <option value="Pix">Pix</option>
+              <option value="Cartão">Cartão</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: 1 / -1">
+            <label for="editNotes">Observações</label>
+            <textarea id="editNotes" maxlength="1200"></textarea>
+          </div>
+          <div class="action-row" style="grid-column: 1 / -1">
+            <button type="button" class="btn btn-ghost" data-close-modal="editExpenseModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-card">Carregando...</div>
+    </div>
+  </body>
+</html>

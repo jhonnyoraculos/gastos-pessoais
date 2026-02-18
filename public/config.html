@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gastos Pessoais | Configurações</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <script src="/js/ui.js" defer></script>
+    <script src="/js/config.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-badge">GP</div>
+          <div>
+            <h1>Gastos Pessoais</h1>
+            <small>Controle financeiro</small>
+          </div>
+        </div>
+        <nav class="nav-links">
+          <a class="nav-link" href="/index.html"><span class="nav-icon"></span>Dashboard</a>
+          <a class="nav-link" href="/gastos.html"><span class="nav-icon"></span>Gastos</a>
+          <a class="nav-link active" href="/config.html"><span class="nav-icon"></span>Configurações</a>
+        </nav>
+      </aside>
+
+      <div class="main">
+        <header class="topbar">
+          <div>
+            <h2>Configurações financeiras</h2>
+            <div class="topbar-subtitle">Ajuste salário, renda extra, orçamento e dia do pagamento</div>
+          </div>
+          <div class="topbar-actions">
+            <a href="/index.html" class="btn btn-secondary">Ver dashboard</a>
+          </div>
+        </header>
+
+        <main class="content-grid">
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Dados principais</h3>
+            </div>
+            <form id="settingsForm" class="form-grid two-cols">
+              <div class="field">
+                <label for="netSalary">Salário líquido mensal (R$)</label>
+                <input id="netSalary" type="number" min="0" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="extraIncome">Renda extra mensal (R$)</label>
+                <input id="extraIncome" type="number" min="0" step="0.01" />
+              </div>
+              <div class="field">
+                <label for="paydayDay">Dia do pagamento (1-28)</label>
+                <input id="paydayDay" type="number" min="1" max="28" required />
+              </div>
+              <div class="field">
+                <label for="monthlyBudget">Orçamento mensal (R$)</label>
+                <input id="monthlyBudget" type="number" min="0" step="0.01" />
+              </div>
+              <div class="action-row" style="grid-column: 1 / -1">
+                <button type="submit" class="btn btn-primary">Salvar configurações</button>
+              </div>
+            </form>
+            <div id="settingsUpdatedAt" class="footer-note">Ultima atualização: -</div>
+          </section>
+
+          <section class="cards-grid">
+            <article class="card">
+              <div class="metric-label">Salário total</div>
+              <div class="metric-value" id="summarySalaryTotal">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Orçamento mensal</div>
+              <div class="metric-value" id="summaryBudget">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Folga vs orçamento</div>
+              <div class="metric-value" id="summaryBudgetLeft">R$ 0,00</div>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-card">Carregando...</div>
+    </div>
+  </body>
+</html>
