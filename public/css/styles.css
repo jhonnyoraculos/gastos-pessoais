@@ -307,6 +307,7 @@ textarea {
   padding: 10px 11px;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 44px;
 }
 
 input:focus,
@@ -334,6 +335,7 @@ textarea {
   cursor: pointer;
   transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease;
   white-space: nowrap;
+  min-height: 44px;
 }
 
 .btn:hover {
@@ -576,6 +578,109 @@ textarea {
   }
 
   table {
-    min-width: 620px;
+    min-width: 100%;
+  }
+
+  .table-dashboard th:nth-child(3),
+  .table-dashboard td:nth-child(3),
+  .table-dashboard th:nth-child(4),
+  .table-dashboard td:nth-child(4),
+  .table-dashboard th:nth-child(5),
+  .table-dashboard td:nth-child(5) {
+    display: none;
+  }
+
+  .table-expenses th:nth-child(3),
+  .table-expenses td:nth-child(3),
+  .table-expenses th:nth-child(5),
+  .table-expenses td:nth-child(5),
+  .table-expenses th:nth-child(7),
+  .table-expenses td:nth-child(7) {
+    display: none;
+  }
+
+  .modal {
+    padding: 0;
+  }
+
+  .modal-panel {
+    width: 100%;
+    height: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .table-wrap .action-row {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    height: auto;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+    background: rgba(7, 13, 25, 0.97);
+    backdrop-filter: blur(10px);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    z-index: 40;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .nav-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .nav-link {
+    justify-content: center;
+    padding: 10px 8px;
+    font-size: 0.82rem;
+  }
+
+  .nav-icon {
+    display: none;
+  }
+
+  .main {
+    padding: 14px 12px calc(96px + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: 8px 0;
+    background: linear-gradient(180deg, rgba(11, 18, 32, 0.96), rgba(11, 18, 32, 0.72) 70%, transparent);
+    backdrop-filter: blur(6px);
+  }
+
+  .topbar-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .topbar-actions > * {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(2, minmax(130px, 1fr));
+  }
+
+  .chart-wrap {
+    height: 220px;
   }
 }
