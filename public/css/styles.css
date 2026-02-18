@@ -658,12 +658,12 @@ textarea {
   }
 
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    padding: 8px 0;
-    background: linear-gradient(180deg, rgba(11, 18, 32, 0.96), rgba(11, 18, 32, 0.72) 70%, transparent);
-    backdrop-filter: blur(6px);
+    position: static;
+    top: auto;
+    z-index: auto;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
   }
 
   .topbar-actions {
