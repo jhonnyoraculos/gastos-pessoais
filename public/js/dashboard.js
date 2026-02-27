@@ -182,10 +182,11 @@
   async function loadDashboardFlow() {
     try {
       setLoading(true, 'Carregando dashboard...');
-      const settings = await apiFetch('/api/settings');
-      const salaryTotal = Number(settings.net_salary || 0) + Number(settings.extra_income || 0);
+      const payload = await refreshDashboard({ withLoading: false });
+      const salaryTotal = Number(payload?.salary_total || 0);
 
       if (salaryTotal <= 0) {
+        const settings = await apiFetch('/api/settings');
         els.onboardingNetSalary.value = '';
         els.onboardingExtraIncome.value = Number(settings.extra_income || 0);
         els.onboardingPayday.value = Number(settings.payday_day || 1);
@@ -194,8 +195,6 @@
       } else {
         closeModal('onboardingModal', { force: true });
       }
-
-      await refreshDashboard();
     } catch (error) {
       toast('error', error.message);
     } finally {
@@ -210,9 +209,12 @@
     return `/api/dashboard?${params.toString()}`;
   }
 
-  async function refreshDashboard() {
+  async function refreshDashboard(options = {}) {
+    const { withLoading = true } = options;
     try {
-      setLoading(true, 'Atualizando dashboard...');
+      if (withLoading) {
+        setLoading(true, 'Atualizando dashboard...');
+      }
       const payload = await apiFetch(dashboardUrl());
       state.latest = payload.latest_expenses || [];
 
@@ -220,10 +222,14 @@
       renderCharts(payload);
       renderLatestTable(state.latest);
       els.lastRefresh.textContent = `Atualizado em ${new Date().toLocaleTimeString('pt-BR')}`;
+      return payload;
     } catch (error) {
       toast('error', error.message);
+      return null;
     } finally {
-      setLoading(false);
+      if (withLoading) {
+        setLoading(false);
+      }
     }
   }
 

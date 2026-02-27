@@ -8,6 +8,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const expensesRoutes = require('./routes/expenses');
 const categoriesRoutes = require('./routes/categories');
 const settingsRoutes = require('./routes/settings');
+const monthlyIncomeRoutes = require('./routes/monthlyIncome');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -47,6 +48,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/settings', settingsRoutes);
+app.use('/api/monthly-income', monthlyIncomeRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/dashboard', dashboardRoutes);

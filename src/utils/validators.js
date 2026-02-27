@@ -132,6 +132,37 @@ function validateSettingsPayload(payload, { partial = true } = {}) {
   return { errors, value };
 }
 
+function validateMonthlyIncomePayload(payload, { partial = false } = {}) {
+  const errors = [];
+  const value = {};
+
+  if (!payload || typeof payload !== 'object') {
+    return { errors: ['Payload invalido.'], value };
+  }
+
+  if ('net_salary' in payload) {
+    const parsed = parseMoneyField(payload.net_salary, 'net_salary');
+    if (parsed.error) errors.push(parsed.error);
+    else value.net_salary = parsed.value;
+  } else if (!partial) {
+    errors.push('net_salary e obrigatorio.');
+  }
+
+  if ('extra_income' in payload) {
+    const parsed = parseMoneyField(payload.extra_income, 'extra_income');
+    if (parsed.error) errors.push(parsed.error);
+    else value.extra_income = parsed.value;
+  } else if (!partial) {
+    value.extra_income = 0;
+  }
+
+  if (partial && Object.keys(value).length === 0) {
+    errors.push('Nenhum campo valido enviado para atualizar salario mensal.');
+  }
+
+  return { errors, value };
+}
+
 function validateCategoryPayload(payload) {
   const errors = [];
   const value = {};
@@ -311,5 +342,6 @@ module.exports = {
   validateCategoryPayload,
   validateExpensePayload,
   validateExpensesQuery,
+  validateMonthlyIncomePayload,
   validateSettingsPayload,
 };

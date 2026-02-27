@@ -1,10 +1,10 @@
 # Gastos Pessoais (Node + Express + Postgres + Render)
 
-Aplicação full-stack de controle de gastos pessoais com dashboard moderno (tema dark), CRUD completo e cálculo de indicadores financeiros por mês (`YYYY-MM`).
+Aplicacao full-stack de controle de gastos pessoais com dashboard dark, CRUD completo e calculo por mes (`YYYY-MM`).
 
 ## Stack
 
-- Node.js 20
+- Node.js 20+
 - Express
 - PostgreSQL (Render Postgres)
 - Front-end vanilla (`HTML/CSS/JS`)
@@ -12,19 +12,24 @@ Aplicação full-stack de controle de gastos pessoais com dashboard moderno (tem
 
 ## Funcionalidades
 
-- Onboarding obrigatório no primeiro acesso para configurar salário.
+- Onboarding no primeiro acesso para configurar salario.
 - Dashboard mensal com:
-  - Salário total (salário líquido + renda extra)
-  - Gasto do mês
-  - `% do salário` já gasto
+  - Salario total (salario liquido + renda extra)
+  - Gasto do mes
+  - Percentual do salario gasto
   - Sobra estimada
-  - Orçamento e saldo do orçamento
-  - Gráficos por tipo/categoria e série diária
-  - Últimos 10 gastos com editar/excluir
-- Página de gastos com CRUD, filtros, busca e paginação (carregar mais).
-- Página de configurações para salário, renda extra, dia de pagamento e orçamento.
-- API REST em `/api/*` com validação e SQL parametrizado.
-- Migrations automáticas no start.
+  - Orcamento e saldo do orcamento
+  - Graficos por tipo, categoria, serie diaria e serie mensal (ultimos 12 meses)
+  - Ultimos 10 gastos com editar/excluir
+- Pagina de gastos com CRUD, filtros, busca e carregamento incremental.
+- Pagina de configuracoes com:
+  - Salario padrao
+  - Salario por mes (override por `YYYY-MM`)
+  - Renda extra
+  - Dia de pagamento
+  - Orcamento mensal
+- API REST em `/api/*` com validacao e SQL parametrizado.
+- Migrations automaticas no start.
 
 ## Estrutura
 
@@ -46,9 +51,11 @@ src/
   routes/expenses.js
   routes/categories.js
   routes/settings.js
+  routes/monthlyIncome.js
   utils/validators.js
 db/
   migrations/001_init.sql
+  migrations/002_monthly_income.sql
 package.json
 render.yaml
 README.md
@@ -56,24 +63,19 @@ README.md
 
 ## Rodar local
 
-1. Instale dependências:
+1. Instale dependencias:
 
 ```bash
 npm install
 ```
 
-2. Defina `DATABASE_URL` para seu Postgres local ou remoto.
-
-Exemplo local:
-
-```bash
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/gastos_pessoais
-```
+2. Defina `DATABASE_URL` para seu Postgres.
 
 Exemplo PowerShell:
 
 ```powershell
 $env:DATABASE_URL="postgres://postgres:postgres@localhost:5432/gastos_pessoais"
+$env:PORT="3000"
 ```
 
 3. Rode migrations:
@@ -82,7 +84,7 @@ $env:DATABASE_URL="postgres://postgres:postgres@localhost:5432/gastos_pessoais"
 npm run migrate
 ```
 
-4. Suba a aplicação:
+4. Suba a aplicacao:
 
 ```bash
 npm start
@@ -94,83 +96,85 @@ npm start
 
 ## Deploy no Render (Blueprint)
 
-O arquivo `render.yaml` já cria:
+O arquivo `render.yaml` cria:
 
-- 1 serviço web Node (`gastos-pessoais-app`)
-- 1 banco Postgres (`gastos-pessoais-db`)
-- `DATABASE_URL` conectado automaticamente no web service
-- `startCommand` com migrations:
-  - `npm run migrate && node src/server.js`
+- 1 Web Service Node (`gastos-pessoais-app`)
+- 1 Postgres (`gastos-pessoais-db`)
+- `DATABASE_URL` ligado ao Postgres
+- Start com migration (`npm run migrate && node src/server.js`)
 
 Passos:
 
-1. Suba o projeto em um repositório Git.
-2. No Render, clique em **New +** -> **Blueprint**.
-3. Selecione o repositório com `render.yaml`.
-4. Confirme criação dos recursos.
-5. Deploy automático roda build e start com migration.
+1. Suba o projeto no GitHub.
+2. No Render, clique em `New` -> `Blueprint`.
+3. Selecione o repositorio com `render.yaml`.
+4. Confirme os recursos.
+5. Aguarde o deploy.
 
-## Variáveis de ambiente
+## Variaveis de ambiente
 
-- `DATABASE_URL` (obrigatória)
-- `PORT` (opcional, Render injeta automaticamente)
+- `DATABASE_URL` (obrigatoria)
+- `PORT` (opcional)
 - `NODE_ENV=production` (recomendado)
-- `NODE_VERSION=20` (definido no `render.yaml`)
 
 ## API REST
 
 ### Health
 
 - `GET /api/health`
-  - resposta: `{ "ok": true }`
 
 ### Settings
 
 - `GET /api/settings`
 - `PUT /api/settings`
-  - body (parcial ou completo):
+  - body parcial/completo:
     - `net_salary`
     - `extra_income`
     - `payday_day` (1..28)
     - `monthly_budget`
+
+### Monthly Income (salario por mes)
+
+- `GET /api/monthly-income?month=YYYY-MM`
+  - retorna um registro de mes (`exists: true`) ou fallback vazio (`exists: false`)
+- `GET /api/monthly-income`
+  - lista registros mais recentes
+- `PUT /api/monthly-income/:month`
+  - body:
+    - `net_salary`
+    - `extra_income`
+- `DELETE /api/monthly-income/:month`
 
 ### Categories
 
 - `GET /api/categories`
 - `POST /api/categories`
   - body:
-    - `name` (único)
+    - `name` (unico)
 
 ### Expenses
 
 - `GET /api/expenses?month=YYYY-MM&category=&type=&q=&limit=&offset=`
 - `POST /api/expenses`
-  - body:
-    - `date` (`YYYY-MM-DD`)
-    - `amount`
-    - `description`
-    - `category_id`
-    - `type` (`Essencial|Besteira|Investimento|Lazer|Outros`)
-    - `method` (`Pix|Cartão|Dinheiro|Outro`)
-    - `notes` (opcional)
 - `PUT /api/expenses/:id`
 - `DELETE /api/expenses/:id`
 
 ### Dashboard
 
 - `GET /api/dashboard?month=YYYY-MM&type=&category=`
-  - retorna payload pronto para render:
+  - retorna payload para render com:
+    - `income_source` (`default` ou `monthly`)
     - `totals`
-    - `by_type` (inclui `% do salário` e `% do gasto do mês`)
-    - `by_category` (top categorias)
+    - `by_type`
+    - `by_category`
     - `daily_series`
+    - `monthly_series`
     - `latest_expenses`
 
-## Segurança aplicada
+## Seguranca
 
 - `helmet`
 - `express-rate-limit`
-- queries SQL parametrizadas
-- validação de payload/query no backend
-- tratamento de erros padronizado:
-  - `{ "error": "mensagem" }`
+- SQL parametrizado
+- Validacao de payload/query
+- Erros JSON padrao: `{ "error": "mensagem" }`

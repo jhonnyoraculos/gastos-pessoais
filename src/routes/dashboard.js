@@ -89,16 +89,46 @@ function buildFilterClause({ start, end, type, category }) {
   };
 }
 
-async function getSettings() {
+async function getEffectiveSettings(month) {
   await pool.query('INSERT INTO gp_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
-  const result = await pool.query(
-    `
-      SELECT id, monthly_budget, net_salary, extra_income, payday_day, updated_at
-      FROM gp_settings
-      WHERE id = 1
-    `
-  );
-  return result.rows[0];
+  const [baseRes, monthlyIncomeRes] = await Promise.all([
+    pool.query(
+      `
+        SELECT id, monthly_budget, net_salary, extra_income, payday_day, updated_at
+        FROM gp_settings
+        WHERE id = 1
+      `
+    ),
+    pool.query(
+      `
+        SELECT month, net_salary, extra_income, updated_at
+        FROM gp_monthly_income
+        WHERE month = $1
+      `,
+      [month]
+    ),
+  ]);
+
+  const base = baseRes.rows[0];
+  const monthlyIncome = monthlyIncomeRes.rows[0] || null;
+
+  if (!monthlyIncome) {
+    return {
+      ...base,
+      month,
+      income_source: 'default',
+      monthly_income_updated_at: null,
+    };
+  }
+
+  return {
+    ...base,
+    month,
+    net_salary: monthlyIncome.net_salary,
+    extra_income: monthlyIncome.extra_income,
+    income_source: 'monthly',
+    monthly_income_updated_at: monthlyIncome.updated_at,
+  };
 }
 
 router.get('/', async (req, res, next) => {
@@ -121,7 +151,7 @@ router.get('/', async (req, res, next) => {
     const monthlyRangeStart = monthlyStart.toISOString().slice(0, 10);
     const monthlyRangeEnd = monthlyEnd.toISOString().slice(0, 10);
 
-    const settingsRow = await getSettings();
+    const settingsRow = await getEffectiveSettings(month);
     const netSalary = toMoney(settingsRow.net_salary);
     const extraIncome = toMoney(settingsRow.extra_income);
     const monthlyBudget = toMoney(settingsRow.monthly_budget);
@@ -308,6 +338,8 @@ router.get('/', async (req, res, next) => {
 
     res.json({
       month,
+      income_source: settingsRow.income_source,
+      monthly_income_updated_at: settingsRow.monthly_income_updated_at,
       salary_total: salaryTotal,
       net_salary: netSalary,
       extra_income: extraIncome,

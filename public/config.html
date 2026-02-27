@@ -65,6 +65,31 @@
             <div id="settingsUpdatedAt" class="footer-note">Ultima atualização: -</div>
           </section>
 
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Salário por mês</h3>
+            </div>
+            <form id="monthlyIncomeForm" class="form-grid two-cols">
+              <div class="field">
+                <label for="monthlyIncomeMonth">Mês de referência</label>
+                <input id="monthlyIncomeMonth" type="month" required />
+              </div>
+              <div class="field">
+                <label for="monthlyIncomeNetSalary">Salário líquido do mês (R$)</label>
+                <input id="monthlyIncomeNetSalary" type="number" min="0" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="monthlyIncomeExtraIncome">Renda extra do mês (R$)</label>
+                <input id="monthlyIncomeExtraIncome" type="number" min="0" step="0.01" />
+              </div>
+              <div class="action-row" style="grid-column: 1 / -1">
+                <button type="button" id="deleteMonthlyIncomeBtn" class="btn btn-ghost">Remover mês</button>
+                <button type="submit" class="btn btn-primary">Salvar salário do mês</button>
+              </div>
+            </form>
+            <div id="monthlyIncomeHint" class="footer-note">Sem registro mensal. O dashboard usa o salário padrão.</div>
+          </section>
+
           <section class="cards-grid">
             <article class="card">
               <div class="metric-label">Salário total</div>
@@ -77,6 +102,11 @@
             <article class="card">
               <div class="metric-label">Folga vs orçamento</div>
               <div class="metric-value" id="summaryBudgetLeft">R$ 0,00</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Salário do mês selecionado</div>
+              <div class="metric-value" id="summaryMonthlySalary">R$ 0,00</div>
+              <div class="metric-hint" id="summaryMonthlySalaryMonth">-</div>
             </article>
           </section>
         </main>
