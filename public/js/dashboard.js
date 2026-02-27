@@ -58,11 +58,14 @@
       const offsetY = Number.isFinite(Number(pluginOptions?.offsetY)) ? Number(pluginOptions.offsetY) : 10;
       const formatter =
         typeof pluginOptions?.formatter === 'function' ? pluginOptions.formatter : (value) => String(value);
+      const strokeColor = pluginOptions?.strokeColor || 'rgba(7, 12, 24, 0.95)';
+      const strokeWidth = Number.isFinite(Number(pluginOptions?.strokeWidth)) ? Number(pluginOptions.strokeWidth) : 3;
 
       ctx.save();
       ctx.font = font;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
+      ctx.lineJoin = 'round';
 
       datasets.forEach((dataset, datasetIndex) => {
         const meta = chart.getDatasetMeta(datasetIndex);
@@ -87,7 +90,12 @@
 
           const position = point.tooltipPosition();
           const lift = offsetY + datasetIndex * 12;
-          ctx.fillText(formatter(raw, dataset, pointIndex), position.x, position.y - lift);
+          const text = formatter(raw, dataset, pointIndex);
+          if (!text) return;
+          ctx.lineWidth = strokeWidth;
+          ctx.strokeStyle = strokeColor;
+          ctx.strokeText(text, position.x, position.y - lift);
+          ctx.fillText(text, position.x, position.y - lift);
         });
       });
 
@@ -355,8 +363,32 @@
       item.percent_of_salary === null ? 0 : Number(item.percent_of_salary)
     );
 
-    const categoryLabels = payload.by_category.map((item) => item.category_name);
-    const categoryValues = payload.by_category.map((item) => Number(item.total_spend || 0));
+    const typePieEntries = payload.by_type
+      .map((item, index) => ({
+        label: item.type,
+        value: Number(item.total_spend || 0),
+        color: TYPE_COLORS[index] || TYPE_COLORS[TYPE_COLORS.length - 1],
+      }))
+      .filter((item) => item.value > 0);
+
+    const typePieLabels = typePieEntries.length ? typePieEntries.map((item) => item.label) : ['Sem dados'];
+    const typePieValues = typePieEntries.length ? typePieEntries.map((item) => item.value) : [1];
+    const typePieColors = typePieEntries.length ? typePieEntries.map((item) => item.color) : ['rgba(148, 163, 184, 0.5)'];
+
+    const categoryPalette = ['#60a5fa', '#22d3ee', '#f59e0b', '#a3e635', '#34d399', '#fb7185', '#f97316', '#818cf8', '#facc15', '#4ade80'];
+    const categoryEntries = payload.by_category
+      .map((item, index) => ({
+        label: item.category_name,
+        value: Number(item.total_spend || 0),
+        color: categoryPalette[index % categoryPalette.length],
+      }))
+      .filter((item) => item.value > 0);
+
+    const categoryLabels = categoryEntries.length ? categoryEntries.map((item) => item.label) : ['Sem dados'];
+    const categoryValues = categoryEntries.length ? categoryEntries.map((item) => item.value) : [1];
+    const categoryColors = categoryEntries.length
+      ? categoryEntries.map((item) => item.color)
+      : ['rgba(148, 163, 184, 0.5)'];
 
     const dailyLabels = payload.daily_series.map((item) => String(item.day).padStart(2, '0'));
     const dailyValues = payload.daily_series.map((item) => Number(item.total_spend || 0));
@@ -368,11 +400,11 @@
     renderOrReplaceChart('typeSpendChart', document.getElementById('chartTypeSpend'), {
       type: 'doughnut',
       data: {
-        labels: typeLabels,
+        labels: typePieLabels,
         datasets: [
           {
-            data: typeSpendValues,
-            backgroundColor: TYPE_COLORS,
+            data: typePieValues,
+            backgroundColor: typePieColors,
             borderWidth: 1,
             borderColor: '#0c172d',
           },
@@ -380,7 +412,7 @@
       },
       options: chartOptions({
         plugins: {
-          legend: buildPieLegendWithValues(typeSpendValues),
+          legend: buildPieLegendWithValues(),
         },
       }),
     });
@@ -441,38 +473,59 @@
             data: dailyValues,
             borderColor: '#38bdf8',
             backgroundColor: 'rgba(56, 189, 248, 0.24)',
+            borderWidth: 3,
             fill: true,
             tension: 0.3,
-            pointRadius: 2,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            yAxisID: 'ySpend',
           },
           {
             label: 'Ganho por dia',
             data: dailyGainValues,
             borderColor: '#22c55e',
-            backgroundColor: 'rgba(34, 197, 94, 0.12)',
+            backgroundColor: 'rgba(34, 197, 94, 0.16)',
+            borderWidth: 3,
             fill: false,
             tension: 0.3,
-            pointRadius: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            yAxisID: 'yGain',
           },
         ],
       },
       options: chartOptions({
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
         plugins: {
           lineValueLabel: {
             formatter: (value) => formatBRL(value),
             offsetY: 10,
             hideZero: true,
-            minValue: 0,
+            minValue: 5,
           },
         },
         scales: {
-          y: {
+          ySpend: {
             beginAtZero: true,
             ticks: {
               color: '#c8d7f5',
               callback: (value) => formatBRL(value),
             },
             grid: { color: 'rgba(148, 163, 184, 0.15)' },
+          },
+          yGain: {
+            beginAtZero: true,
+            position: 'right',
+            ticks: {
+              color: '#86efac',
+              callback: (value) => formatBRL(value),
+            },
+            grid: {
+              drawOnChartArea: false,
+            },
           },
           x: {
             ticks: { color: '#c8d7f5' },
@@ -486,20 +539,18 @@
     renderOrReplaceChart('categoryChart', document.getElementById('chartCategory'), {
       type: 'pie',
       data: {
-        labels: categoryLabels.length ? categoryLabels : ['Sem dados'],
+        labels: categoryLabels,
         datasets: [
           {
-            data: categoryValues.length ? categoryValues : [1],
-            backgroundColor: categoryValues.length
-              ? ['#60a5fa', '#22d3ee', '#f59e0b', '#a3e635', '#34d399', '#fb7185', '#f97316', '#818cf8', '#facc15', '#4ade80']
-              : ['rgba(148, 163, 184, 0.5)'],
+            data: categoryValues,
+            backgroundColor: categoryColors,
             borderColor: '#0c172d',
             borderWidth: 1,
           },
         ],
       },
       options: chartOptions({
-        plugins: { legend: buildPieLegendWithValues(categoryValues) },
+        plugins: { legend: buildPieLegendWithValues() },
       }),
     });
 
@@ -513,9 +564,11 @@
             data: monthlyValues,
             borderColor: '#22d3ee',
             backgroundColor: 'rgba(34, 211, 238, 0.16)',
+            borderWidth: 3,
             fill: true,
             tension: 0.3,
-            pointRadius: 2.5,
+            pointRadius: 3,
+            pointHoverRadius: 5,
           },
         ],
       },
@@ -547,23 +600,32 @@
     });
   }
 
-  function buildPieLegendWithValues(values) {
+  function buildPieLegendWithValues() {
     return {
       labels: {
         color: '#dbeafe',
         usePointStyle: true,
         boxWidth: 10,
         generateLabels(chart) {
-          const baseLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-          return baseLabels.map((labelItem) => {
-            const labelText = String(chart.data?.labels?.[labelItem.index] || labelItem.text || '');
-            if (labelText === 'Sem dados') {
-              return { ...labelItem, text: labelText };
-            }
-            const value = Number(values?.[labelItem.index] || 0);
+          const labels = Array.isArray(chart.data?.labels) ? chart.data.labels : [];
+          const dataset = chart.data?.datasets?.[0] || {};
+          const datasetValues = Array.isArray(dataset.data) ? dataset.data : [];
+          const colors = Array.isArray(dataset.backgroundColor)
+            ? dataset.backgroundColor
+            : labels.map(() => dataset.backgroundColor || '#60a5fa');
+
+          return labels.map((label, index) => {
+            const labelText = String(label || '');
+            const value = Number(datasetValues[index] ?? 0);
             return {
-              ...labelItem,
-              text: `${labelText}: ${formatBRL(value)}`,
+              text: labelText === 'Sem dados' ? labelText : `${labelText}: ${formatBRL(value)}`,
+              fillStyle: colors[index],
+              strokeStyle: '#0c172d',
+              lineWidth: 1,
+              hidden: !chart.getDataVisibility(index),
+              index,
+              datasetIndex: 0,
+              pointStyle: 'circle',
             };
           });
         },
