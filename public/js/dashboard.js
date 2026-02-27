@@ -628,22 +628,18 @@
           const colors = Array.isArray(dataset.backgroundColor)
             ? dataset.backgroundColor
             : labels.map(() => dataset.backgroundColor || '#60a5fa');
-          const baseLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
 
-          return baseLabels.map((labelItem) => {
-            const index = Number(labelItem.index ?? 0);
-            const label = labels[index];
+          return labels.map((label, index) => {
             const labelText = String(label || '');
             const value = Number(datasetValues[index] ?? 0);
             return {
-              ...labelItem,
               text: labelText === 'Sem dados' ? labelText : `${labelText}: ${formatBRL(value)}`,
               color: '#ffffff',
               fontColor: '#ffffff',
-              fillStyle: colors[index] || labelItem.fillStyle,
+              fillStyle: colors[index] || '#60a5fa',
               strokeStyle: '#0c172d',
               lineWidth: 1,
-              hidden: labelItem.hidden,
+              hidden: !chart.getDataVisibility(index),
               index,
               datasetIndex: 0,
               pointStyle: 'circle',
