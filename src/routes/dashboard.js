@@ -161,6 +161,88 @@ async function getEffectiveSettings(month) {
   };
 }
 
+function buildYearMonth(year, monthNumber) {
+  return `${year}-${String(monthNumber).padStart(2, '0')}`;
+}
+
+async function computePositiveCarryover({ month, type, category }) {
+  const parsedMonth = parseMonth(month);
+  if (!parsedMonth) return 0;
+
+  const [yearText, monthText] = parsedMonth.split('-');
+  const year = Number(yearText);
+  const selectedMonthNumber = Number(monthText);
+  if (!Number.isFinite(year) || !Number.isFinite(selectedMonthNumber)) return 0;
+
+  // Janeiro fica fora do acumulado: acumulo inicia em fevereiro.
+  if (selectedMonthNumber <= 2) {
+    return 0;
+  }
+
+  const baseFrom = 'FROM gp_expenses e JOIN gp_categories c ON c.id = e.category_id';
+  let carry = 0;
+
+  for (let iterMonthNumber = 2; iterMonthNumber < selectedMonthNumber; iterMonthNumber += 1) {
+    const iterMonth = buildYearMonth(year, iterMonthNumber);
+    const iterRange = getMonthRange(iterMonth);
+    const iterSettings = await getEffectiveSettings(iterMonth);
+    const iterSalaryTotal = toMoney(Number(iterSettings.net_salary || 0) + Number(iterSettings.extra_income || 0));
+
+    const iterSpendFilters = buildFilterClause({
+      start: iterRange.start,
+      end: iterRange.end,
+      type: type || null,
+      category: category || null,
+    });
+    const iterIncomeFilters = buildIncomeFilterClause({
+      start: iterRange.start,
+      end: iterRange.end,
+      category: category || null,
+    });
+
+    const [iterSpendRes, iterGainRes, iterReserveRes] = await Promise.all([
+      pool.query(
+        `
+          SELECT COALESCE(SUM(e.amount), 0) AS total
+          ${baseFrom}
+          ${iterSpendFilters.whereClause}
+        `,
+        iterSpendFilters.params
+      ),
+      pool.query(
+        `
+          SELECT COALESCE(SUM(i.amount), 0) AS total
+          FROM gp_incomes i
+          JOIN gp_categories c ON c.id = i.category_id
+          ${iterIncomeFilters.whereClause}
+        `,
+        iterIncomeFilters.params
+      ),
+      pool.query(
+        `
+          SELECT
+            COALESCE(SUM(CASE WHEN r.movement_type = 'Resgate' THEN r.amount ELSE 0 END), 0) AS total_resgate,
+            COALESCE(SUM(CASE WHEN r.movement_type = 'Aporte' THEN r.amount ELSE 0 END), 0) AS total_aporte
+          FROM gp_reserves r
+          WHERE r.date >= $1 AND r.date < $2
+        `,
+        [iterRange.start, iterRange.end]
+      ),
+    ]);
+
+    const iterSpend = toMoney(iterSpendRes.rows[0].total);
+    const iterGain = toMoney(iterGainRes.rows[0].total);
+    const iterResgate = toMoney(iterReserveRes.rows[0].total_resgate);
+    const iterAporte = toMoney(iterReserveRes.rows[0].total_aporte);
+    const iterReserveNet = toMoney(iterResgate - iterAporte);
+    const iterMonthResult = toMoney(carry + iterSalaryTotal + iterGain + iterReserveNet - iterSpend);
+
+    carry = iterMonthResult > 0 ? iterMonthResult : 0;
+  }
+
+  return toMoney(carry);
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const month = req.query.month ? parseMonth(String(req.query.month)) : getCurrentMonth();
@@ -186,6 +268,11 @@ router.get('/', async (req, res, next) => {
     const extraIncome = toMoney(settingsRow.extra_income);
     const monthlyBudget = toMoney(settingsRow.monthly_budget);
     const salaryTotal = toMoney(netSalary + extraIncome);
+    const carryoverBalance = await computePositiveCarryover({
+      month,
+      type,
+      category,
+    });
 
     const baseFrom = 'FROM gp_expenses e JOIN gp_categories c ON c.id = e.category_id';
     const monthFilters = buildFilterClause({
@@ -328,8 +415,8 @@ router.get('/', async (req, res, next) => {
     const reserveResgateMonth = toMoney(reserveMonthRes.rows[0].total_resgate);
     const reserveAporteMonth = toMoney(reserveMonthRes.rows[0].total_aporte);
     const reserveNetMonth = toMoney(reserveResgateMonth - reserveAporteMonth);
-    const estimatedLeft = toMoney(salaryTotal - spendMonth);
-    const realLeft = toMoney(salaryTotal + gainMonth + reserveNetMonth - spendMonth);
+    const estimatedLeft = toMoney(carryoverBalance + salaryTotal - spendMonth);
+    const realLeft = toMoney(carryoverBalance + salaryTotal + gainMonth + reserveNetMonth - spendMonth);
     const budgetLeft = monthlyBudget > 0 ? toMoney(monthlyBudget - spendMonth) : null;
     const salarySpentPercent = salaryTotal > 0 ? round1((spendMonth / salaryTotal) * 100) : null;
 
@@ -473,6 +560,7 @@ router.get('/', async (req, res, next) => {
         spend_month: spendMonth,
         gain_month: gainMonth,
         card_spend_month: cardSpendMonth,
+        carryover_balance: carryoverBalance,
         reserve_resgate_month: reserveResgateMonth,
         reserve_aporte_month: reserveAporteMonth,
         reserve_net_month: reserveNetMonth,
