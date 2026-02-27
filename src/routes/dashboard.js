@@ -200,7 +200,7 @@ router.get('/', async (req, res, next) => {
       category: category || null,
     });
 
-    const [spendMonthRes, gainMonthRes, byTypeRes, byCategoryRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
+    const [spendMonthRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -217,6 +217,16 @@ router.get('/', async (req, res, next) => {
           ${incomeMonthFilters.whereClause}
         `,
         incomeMonthFilters.params
+      ),
+      pool.query(
+        `
+          SELECT
+            COALESCE(SUM(CASE WHEN r.movement_type = 'Resgate' THEN r.amount ELSE 0 END), 0) AS total_resgate,
+            COALESCE(SUM(CASE WHEN r.movement_type = 'Aporte' THEN r.amount ELSE 0 END), 0) AS total_aporte
+          FROM gp_reserves r
+          WHERE r.date >= $1 AND r.date < $2
+        `,
+        [monthRange.start, monthRange.end]
       ),
       pool.query(
         `
@@ -292,8 +302,11 @@ router.get('/', async (req, res, next) => {
 
     const spendMonth = toMoney(spendMonthRes.rows[0].total);
     const gainMonth = toMoney(gainMonthRes.rows[0].total);
+    const reserveResgateMonth = toMoney(reserveMonthRes.rows[0].total_resgate);
+    const reserveAporteMonth = toMoney(reserveMonthRes.rows[0].total_aporte);
+    const reserveNetMonth = toMoney(reserveResgateMonth - reserveAporteMonth);
     const estimatedLeft = toMoney(salaryTotal - spendMonth);
-    const realLeft = toMoney(salaryTotal + gainMonth - spendMonth);
+    const realLeft = toMoney(salaryTotal + gainMonth + reserveNetMonth - spendMonth);
     const budgetLeft = monthlyBudget > 0 ? toMoney(monthlyBudget - spendMonth) : null;
     const salarySpentPercent = salaryTotal > 0 ? round1((spendMonth / salaryTotal) * 100) : null;
 
@@ -436,6 +449,9 @@ router.get('/', async (req, res, next) => {
         gain_week: gainWeek,
         spend_month: spendMonth,
         gain_month: gainMonth,
+        reserve_resgate_month: reserveResgateMonth,
+        reserve_aporte_month: reserveAporteMonth,
+        reserve_net_month: reserveNetMonth,
         salary_spent_percent: salarySpentPercent,
         estimated_left: estimatedLeft,
         real_left: realLeft,
