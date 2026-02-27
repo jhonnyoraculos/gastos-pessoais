@@ -200,7 +200,7 @@ router.get('/', async (req, res, next) => {
       category: category || null,
     });
 
-    const [spendMonthRes, gainMonthRes, byTypeRes, byCategoryRes, dailyRes, monthlyRes, latestRes] = await Promise.all([
+    const [spendMonthRes, gainMonthRes, byTypeRes, byCategoryRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -247,6 +247,17 @@ router.get('/', async (req, res, next) => {
           ORDER BY day
         `,
         monthFilters.params
+      ),
+      pool.query(
+        `
+          SELECT EXTRACT(DAY FROM i.date)::int AS day, COALESCE(SUM(i.amount), 0) AS total
+          FROM gp_incomes i
+          JOIN gp_categories c ON c.id = i.category_id
+          ${incomeMonthFilters.whereClause}
+          GROUP BY day
+          ORDER BY day
+        `,
+        incomeMonthFilters.params
       ),
       pool.query(
         `
@@ -309,11 +320,13 @@ router.get('/', async (req, res, next) => {
     });
 
     const dailyMap = new Map(dailyRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
+    const dailyGainMap = new Map(dailyGainRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
     const dailySeries = [];
     for (let day = 1; day <= monthRange.daysInMonth; day += 1) {
       dailySeries.push({
         day,
         total_spend: dailyMap.get(day) || 0,
+        total_gain: dailyGainMap.get(day) || 0,
       });
     }
 

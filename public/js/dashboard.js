@@ -306,6 +306,7 @@
 
     const dailyLabels = payload.daily_series.map((item) => String(item.day).padStart(2, '0'));
     const dailyValues = payload.daily_series.map((item) => Number(item.total_spend || 0));
+    const dailyGainValues = payload.daily_series.map((item) => Number(item.total_gain || 0));
     const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series : [];
     const monthlyLabels = monthlySeries.map((item) => formatMonthLabel(item.month));
     const monthlyValues = monthlySeries.map((item) => Number(item.total_spend || 0));
@@ -387,6 +388,15 @@
             borderColor: '#38bdf8',
             backgroundColor: 'rgba(56, 189, 248, 0.24)',
             fill: true,
+            tension: 0.3,
+            pointRadius: 2,
+          },
+          {
+            label: 'Ganho por dia',
+            data: dailyGainValues,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.12)',
+            fill: false,
             tension: 0.3,
             pointRadius: 2,
           },
