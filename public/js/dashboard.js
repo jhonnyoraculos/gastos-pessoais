@@ -41,6 +41,60 @@
     },
   };
 
+  const lineValueLabelPlugin = {
+    id: 'lineValueLabel',
+    afterDatasetsDraw(chart, _args, pluginOptions) {
+      if (chart.config.type !== 'line') {
+        return;
+      }
+
+      const datasets = chart.data?.datasets || [];
+      if (!datasets.length) return;
+
+      const ctx = chart.ctx;
+      const font = pluginOptions?.font || '600 11px Inter, system-ui, sans-serif';
+      const hideZero = pluginOptions?.hideZero !== false;
+      const minValue = Number.isFinite(Number(pluginOptions?.minValue)) ? Number(pluginOptions.minValue) : 0;
+      const offsetY = Number.isFinite(Number(pluginOptions?.offsetY)) ? Number(pluginOptions.offsetY) : 10;
+      const formatter =
+        typeof pluginOptions?.formatter === 'function' ? pluginOptions.formatter : (value) => String(value);
+
+      ctx.save();
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+
+      datasets.forEach((dataset, datasetIndex) => {
+        const meta = chart.getDatasetMeta(datasetIndex);
+        if (!meta || meta.hidden) {
+          return;
+        }
+
+        const color =
+          (Array.isArray(dataset.borderColor) ? dataset.borderColor[0] : dataset.borderColor) ||
+          (Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[0] : dataset.backgroundColor) ||
+          '#dbeafe';
+
+        ctx.fillStyle = color;
+        meta.data.forEach((point, pointIndex) => {
+          const raw = Number(dataset.data?.[pointIndex] || 0);
+          if (!Number.isFinite(raw)) {
+            return;
+          }
+          if (hideZero && raw <= minValue) {
+            return;
+          }
+
+          const position = point.tooltipPosition();
+          const lift = offsetY + datasetIndex * 12;
+          ctx.fillText(formatter(raw, dataset, pointIndex), position.x, position.y - lift);
+        });
+      });
+
+      ctx.restore();
+    },
+  };
+
   const state = {
     month: currentMonthISO(),
     type: '',
@@ -326,7 +380,7 @@
       },
       options: chartOptions({
         plugins: {
-          legend: { labels: { color: '#dbeafe' } },
+          legend: buildPieLegendWithValues(typeSpendValues),
         },
       }),
     });
@@ -403,6 +457,14 @@
         ],
       },
       options: chartOptions({
+        plugins: {
+          lineValueLabel: {
+            formatter: (value) => formatBRL(value),
+            offsetY: 10,
+            hideZero: true,
+            minValue: 0,
+          },
+        },
         scales: {
           y: {
             beginAtZero: true,
@@ -418,6 +480,7 @@
           },
         },
       }),
+      plugins: [lineValueLabelPlugin],
     });
 
     renderOrReplaceChart('categoryChart', document.getElementById('chartCategory'), {
@@ -436,7 +499,7 @@
         ],
       },
       options: chartOptions({
-        plugins: { legend: { labels: { color: '#dbeafe' } } },
+        plugins: { legend: buildPieLegendWithValues(categoryValues) },
       }),
     });
 
@@ -457,6 +520,14 @@
         ],
       },
       options: chartOptions({
+        plugins: {
+          lineValueLabel: {
+            formatter: (value) => formatBRL(value),
+            offsetY: 10,
+            hideZero: true,
+            minValue: 0,
+          },
+        },
         scales: {
           y: {
             beginAtZero: true,
@@ -472,7 +543,32 @@
           },
         },
       }),
+      plugins: [lineValueLabelPlugin],
     });
+  }
+
+  function buildPieLegendWithValues(values) {
+    return {
+      labels: {
+        color: '#dbeafe',
+        usePointStyle: true,
+        boxWidth: 10,
+        generateLabels(chart) {
+          const baseLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+          return baseLabels.map((labelItem) => {
+            const labelText = String(chart.data?.labels?.[labelItem.index] || labelItem.text || '');
+            if (labelText === 'Sem dados') {
+              return { ...labelItem, text: labelText };
+            }
+            const value = Number(values?.[labelItem.index] || 0);
+            return {
+              ...labelItem,
+              text: `${labelText}: ${formatBRL(value)}`,
+            };
+          });
+        },
+      },
+    };
   }
 
   function formatMonthLabel(monthText) {
