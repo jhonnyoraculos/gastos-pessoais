@@ -5,15 +5,15 @@
     categories: [],
     expenses: [],
     expensesTotal: 0,
-    expensesLimit: 20,
+    expensesLimit: 3,
     expensesOffset: 0,
     incomes: [],
     incomesTotal: 0,
-    incomesLimit: 20,
+    incomesLimit: 3,
     incomesOffset: 0,
     reserves: [],
     reservesTotal: 0,
-    reservesLimit: 20,
+    reservesLimit: 3,
     reservesOffset: 0,
   };
 
@@ -652,19 +652,28 @@
   function refreshExpensePagingState() {
     const hasMore = state.expensesOffset < state.expensesTotal;
     els.loadMoreBtn.style.display = hasMore ? 'inline-flex' : 'none';
-    els.listMeta.textContent = `Mostrando ${state.expenses.length} de ${state.expensesTotal} gastos`;
+    const remaining = Math.max(state.expensesTotal - state.expenses.length, 0);
+    els.listMeta.textContent = hasMore
+      ? `Mostrando ${state.expenses.length} de ${state.expensesTotal} gastos. Restam ${remaining}.`
+      : `Mostrando ${state.expenses.length} de ${state.expensesTotal} gastos.`;
   }
 
   function refreshIncomePagingState() {
     const hasMore = state.incomesOffset < state.incomesTotal;
     els.loadMoreIncomesBtn.style.display = hasMore ? 'inline-flex' : 'none';
-    els.incomeListMeta.textContent = `Mostrando ${state.incomes.length} de ${state.incomesTotal} ganhos`;
+    const remaining = Math.max(state.incomesTotal - state.incomes.length, 0);
+    els.incomeListMeta.textContent = hasMore
+      ? `Mostrando ${state.incomes.length} de ${state.incomesTotal} ganhos. Restam ${remaining}.`
+      : `Mostrando ${state.incomes.length} de ${state.incomesTotal} ganhos.`;
   }
 
   function refreshReservePagingState() {
     const hasMore = state.reservesOffset < state.reservesTotal;
     els.loadMoreReservesBtn.style.display = hasMore ? 'inline-flex' : 'none';
-    els.reserveListMeta.textContent = `Mostrando ${state.reserves.length} de ${state.reservesTotal} reservas`;
+    const remaining = Math.max(state.reservesTotal - state.reserves.length, 0);
+    els.reserveListMeta.textContent = hasMore
+      ? `Mostrando ${state.reserves.length} de ${state.reservesTotal} reservas. Restam ${remaining}.`
+      : `Mostrando ${state.reserves.length} de ${state.reservesTotal} reservas.`;
   }
 
   async function loadCategories() {

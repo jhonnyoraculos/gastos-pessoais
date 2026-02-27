@@ -60,6 +60,9 @@
         typeof pluginOptions?.formatter === 'function' ? pluginOptions.formatter : (value) => String(value);
       const strokeColor = pluginOptions?.strokeColor || 'rgba(7, 12, 24, 0.95)';
       const strokeWidth = Number.isFinite(Number(pluginOptions?.strokeWidth)) ? Number(pluginOptions.strokeWidth) : 3;
+      const maxLabelsPerDataset = Number.isFinite(Number(pluginOptions?.maxLabelsPerDataset))
+        ? Number(pluginOptions.maxLabelsPerDataset)
+        : null;
 
       ctx.save();
       ctx.font = font;
@@ -79,15 +82,23 @@
           '#dbeafe';
 
         ctx.fillStyle = color;
-        meta.data.forEach((point, pointIndex) => {
-          const raw = Number(dataset.data?.[pointIndex] || 0);
-          if (!Number.isFinite(raw)) {
-            return;
-          }
-          if (hideZero && raw <= minValue) {
-            return;
-          }
+        const candidates = meta.data
+          .map((point, pointIndex) => ({
+            point,
+            pointIndex,
+            raw: Number(dataset.data?.[pointIndex] || 0),
+          }))
+          .filter((entry) => Number.isFinite(entry.raw) && (!hideZero || entry.raw > minValue));
 
+        const selected = maxLabelsPerDataset && candidates.length > maxLabelsPerDataset
+          ? candidates
+              .slice()
+              .sort((a, b) => b.raw - a.raw)
+              .slice(0, maxLabelsPerDataset)
+              .sort((a, b) => a.pointIndex - b.pointIndex)
+          : candidates;
+
+        selected.forEach(({ point, pointIndex, raw }) => {
           const position = point.tooltipPosition();
           const lift = offsetY + datasetIndex * 12;
           const text = formatter(raw, dataset, pointIndex);
@@ -412,7 +423,7 @@
       },
       options: chartOptions({
         plugins: {
-          legend: buildPieLegendWithValues(),
+          legend: buildPieLegendWithValues({ position: pieLegendPosition() }),
         },
       }),
     });
@@ -504,7 +515,8 @@
             formatter: (value) => formatBRL(value),
             offsetY: 10,
             hideZero: true,
-            minValue: 5,
+            minValue: 20,
+            maxLabelsPerDataset: 4,
           },
         },
         scales: {
@@ -550,7 +562,7 @@
         ],
       },
       options: chartOptions({
-        plugins: { legend: buildPieLegendWithValues() },
+        plugins: { legend: buildPieLegendWithValues({ position: pieLegendPosition() }) },
       }),
     });
 
@@ -578,7 +590,8 @@
             formatter: (value) => formatBRL(value),
             offsetY: 10,
             hideZero: true,
-            minValue: 0,
+            minValue: 20,
+            maxLabelsPerDataset: 6,
           },
         },
         scales: {
@@ -600,12 +613,25 @@
     });
   }
 
-  function buildPieLegendWithValues() {
+  function pieLegendPosition() {
+    return window.innerWidth <= 980 ? 'bottom' : 'right';
+  }
+
+  function buildPieLegendWithValues(options = {}) {
+    const position = options.position || 'right';
     return {
+      position,
+      align: 'start',
       labels: {
         color: '#dbeafe',
         usePointStyle: true,
         boxWidth: 10,
+        boxHeight: 10,
+        padding: 12,
+        font: {
+          size: 12,
+          weight: 600,
+        },
         generateLabels(chart) {
           const labels = Array.isArray(chart.data?.labels) ? chart.data.labels : [];
           const dataset = chart.data?.datasets?.[0] || {};
