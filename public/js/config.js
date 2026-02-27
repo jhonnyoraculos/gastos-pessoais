@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const { apiFetch, currentMonthISO, formatBRL, setLoading, toast } = window.UI;
 
   const state = {
@@ -20,11 +20,9 @@
 
   function cacheElements() {
     els.form = document.getElementById('settingsForm');
-    els.netSalary = document.getElementById('netSalary');
-    els.extraIncome = document.getElementById('extraIncome');
     els.paydayDay = document.getElementById('paydayDay');
     els.monthlyBudget = document.getElementById('monthlyBudget');
-    els.summarySalary = document.getElementById('summarySalaryTotal');
+    els.summaryPayday = document.getElementById('summaryPaydayDay');
     els.summaryBudget = document.getElementById('summaryBudget');
     els.summaryLeft = document.getElementById('summaryBudgetLeft');
     els.updatedAt = document.getElementById('settingsUpdatedAt');
@@ -45,10 +43,11 @@
       event.preventDefault();
 
       const payload = {
-        net_salary: Number(els.netSalary.value || 0),
-        extra_income: Number(els.extraIncome.value || 0),
         payday_day: Number(els.paydayDay.value || 1),
         monthly_budget: Number(els.monthlyBudget.value || 0),
+        // Mantem o app 100% orientado a salario mensal por competencia.
+        net_salary: 0,
+        extra_income: 0,
       };
 
       try {
@@ -193,28 +192,17 @@
 
   function renderSettings() {
     const settings = state.settings || {};
-    const netSalary = Number(settings.net_salary || 0);
-    const extraIncome = Number(settings.extra_income || 0);
     const monthlyBudget = Number(settings.monthly_budget || 0);
-    const salaryTotal = netSalary + extraIncome;
-    const budgetLeft = monthlyBudget > 0 ? salaryTotal - monthlyBudget : salaryTotal;
+    const paydayDay = Number(settings.payday_day || 1) || 1;
 
-    els.netSalary.value = netSalary;
-    els.extraIncome.value = extraIncome;
-    els.paydayDay.value = Number(settings.payday_day || 1) || 1;
+    els.paydayDay.value = paydayDay;
     els.monthlyBudget.value = monthlyBudget;
 
-    els.summarySalary.textContent = formatBRL(salaryTotal);
+    els.summaryPayday.textContent = `Dia ${paydayDay}`;
     els.summaryBudget.textContent = formatBRL(monthlyBudget);
-    els.summaryLeft.textContent = formatBRL(budgetLeft);
     els.updatedAt.textContent = settings.updated_at
       ? `Ultima atualizacao: ${new Date(settings.updated_at).toLocaleString('pt-BR')}`
       : 'Ultima atualizacao: -';
-
-    if (!state.monthlyIncome?.exists) {
-      els.monthlyIncomeNetSalary.value = netSalary;
-      els.monthlyIncomeExtraIncome.value = extraIncome;
-    }
 
     renderSummaryCards();
   }
@@ -231,11 +219,9 @@
         ? `Registro mensal ativo para ${monthLabel}. Atualizado em ${new Date(monthly.updated_at).toLocaleString('pt-BR')}.`
         : `Registro mensal ativo para ${monthLabel}.`;
     } else {
-      const defaultNet = Number(state.settings?.net_salary || 0);
-      const defaultExtra = Number(state.settings?.extra_income || 0);
-      els.monthlyIncomeNetSalary.value = defaultNet;
-      els.monthlyIncomeExtraIncome.value = defaultExtra;
-      els.monthlyIncomeHint.textContent = `Sem registro mensal para ${monthLabel}. O dashboard usa o salario padrao.`;
+      els.monthlyIncomeNetSalary.value = 0;
+      els.monthlyIncomeExtraIncome.value = 0;
+      els.monthlyIncomeHint.textContent = `Sem registro mensal para ${monthLabel}.`;
     }
 
     els.deleteMonthlyIncomeBtn.disabled = !hasMonthly;
@@ -243,16 +229,16 @@
 
   function renderSummaryCards() {
     const settings = state.settings || {};
-    const defaultSalaryTotal = Number(settings.net_salary || 0) + Number(settings.extra_income || 0);
+    const monthlyBudget = Number(settings.monthly_budget || 0);
     const hasMonthly = Boolean(state.monthlyIncome?.exists);
-    const monthlySalaryTotal = hasMonthly
-      ? Number(state.monthlyIncome.salary_total || 0)
-      : defaultSalaryTotal;
+    const monthlySalaryTotal = hasMonthly ? Number(state.monthlyIncome.salary_total || 0) : 0;
+    const budgetLeft = monthlyBudget > 0 ? monthlySalaryTotal - monthlyBudget : monthlySalaryTotal;
 
     els.summaryMonthlySalary.textContent = formatBRL(monthlySalaryTotal);
     els.summaryMonthlySalaryMonth.textContent = hasMonthly
       ? `${formatMonthLabel(state.selectedMonth)} (registro mensal)`
-      : `${formatMonthLabel(state.selectedMonth)} (salario padrao)`;
+      : `${formatMonthLabel(state.selectedMonth)} (sem registro)`;
+    els.summaryLeft.textContent = formatBRL(budgetLeft);
   }
 
   function normalizeMonthValue(value) {

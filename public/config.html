@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gastos Pessoais | Configurações</title>
+    <title>Gastos Pessoais | Configuracoes</title>
     <link rel="stylesheet" href="/css/styles.css" />
     <script src="/js/ui.js" defer></script>
     <script src="/js/config.js" defer></script>
@@ -21,15 +21,15 @@
         <nav class="nav-links">
           <a class="nav-link" href="/index.html"><span class="nav-icon"></span>Dashboard</a>
           <a class="nav-link" href="/gastos.html"><span class="nav-icon"></span>Gastos</a>
-          <a class="nav-link active" href="/config.html"><span class="nav-icon"></span>Configurações</a>
+          <a class="nav-link active" href="/config.html"><span class="nav-icon"></span>Configuracoes</a>
         </nav>
       </aside>
 
       <div class="main">
         <header class="topbar">
           <div>
-            <h2>Configurações financeiras</h2>
-            <div class="topbar-subtitle">Ajuste salário, renda extra, orçamento e dia do pagamento</div>
+            <h2>Configuracoes financeiras</h2>
+            <div class="topbar-subtitle">Ajuste salario por mes, orcamento e dia do pagamento</div>
           </div>
           <div class="topbar-actions">
             <a href="/index.html" class="btn btn-secondary">Ver dashboard</a>
@@ -39,72 +39,64 @@
         <main class="content-grid">
           <section class="panel">
             <div class="panel-header">
-              <h3 class="panel-title">Dados principais</h3>
+              <h3 class="panel-title">Configuracoes gerais</h3>
             </div>
             <form id="settingsForm" class="form-grid two-cols">
-              <div class="field">
-                <label for="netSalary">Salário líquido mensal (R$)</label>
-                <input id="netSalary" type="number" min="0" step="0.01" required />
-              </div>
-              <div class="field">
-                <label for="extraIncome">Renda extra mensal (R$)</label>
-                <input id="extraIncome" type="number" min="0" step="0.01" />
-              </div>
               <div class="field">
                 <label for="paydayDay">Dia do pagamento (1-28)</label>
                 <input id="paydayDay" type="number" min="1" max="28" required />
               </div>
               <div class="field">
-                <label for="monthlyBudget">Orçamento mensal (R$)</label>
+                <label for="monthlyBudget">Orcamento mensal (R$)</label>
                 <input id="monthlyBudget" type="number" min="0" step="0.01" />
               </div>
               <div class="action-row" style="grid-column: 1 / -1">
-                <button type="submit" class="btn btn-primary">Salvar configurações</button>
+                <button type="submit" class="btn btn-primary">Salvar configuracoes</button>
               </div>
             </form>
-            <div id="settingsUpdatedAt" class="footer-note">Ultima atualização: -</div>
+            <div id="settingsUpdatedAt" class="footer-note">Ultima atualizacao: -</div>
           </section>
 
           <section class="panel">
             <div class="panel-header">
-              <h3 class="panel-title">Salário por mês</h3>
+              <h3 class="panel-title">Salario por mes</h3>
             </div>
             <form id="monthlyIncomeForm" class="form-grid two-cols">
               <div class="field">
-                <label for="monthlyIncomeMonth">Mês de referência</label>
+                <label for="monthlyIncomeMonth">Mes de referencia</label>
                 <input id="monthlyIncomeMonth" type="month" required />
               </div>
               <div class="field">
-                <label for="monthlyIncomeNetSalary">Salário líquido do mês (R$)</label>
+                <label for="monthlyIncomeNetSalary">Salario liquido do mes (R$)</label>
                 <input id="monthlyIncomeNetSalary" type="number" min="0" step="0.01" required />
               </div>
               <div class="field">
-                <label for="monthlyIncomeExtraIncome">Renda extra do mês (R$)</label>
+                <label for="monthlyIncomeExtraIncome">Renda extra do mes (R$)</label>
                 <input id="monthlyIncomeExtraIncome" type="number" min="0" step="0.01" />
               </div>
               <div class="action-row" style="grid-column: 1 / -1">
-                <button type="button" id="deleteMonthlyIncomeBtn" class="btn btn-ghost">Remover mês</button>
-                <button type="submit" class="btn btn-primary">Salvar salário do mês</button>
+                <button type="button" id="deleteMonthlyIncomeBtn" class="btn btn-ghost">Remover mes</button>
+                <button type="submit" class="btn btn-primary">Salvar salario do mes</button>
               </div>
             </form>
-            <div id="monthlyIncomeHint" class="footer-note">Sem registro mensal. O dashboard usa o salário padrão.</div>
+            <div id="monthlyIncomeHint" class="footer-note">Sem registro mensal para este mes.</div>
           </section>
 
           <section class="cards-grid">
             <article class="card">
-              <div class="metric-label">Salário total</div>
-              <div class="metric-value" id="summarySalaryTotal">R$ 0,00</div>
+              <div class="metric-label">Dia de pagamento</div>
+              <div class="metric-value" id="summaryPaydayDay">Dia 1</div>
             </article>
             <article class="card">
-              <div class="metric-label">Orçamento mensal</div>
+              <div class="metric-label">Orcamento mensal</div>
               <div class="metric-value" id="summaryBudget">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Folga vs orçamento</div>
+              <div class="metric-label">Folga vs orcamento</div>
               <div class="metric-value" id="summaryBudgetLeft">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Salário do mês selecionado</div>
+              <div class="metric-label">Salario do mes selecionado</div>
               <div class="metric-value" id="summaryMonthlySalary">R$ 0,00</div>
               <div class="metric-hint" id="summaryMonthlySalaryMonth">-</div>
             </article>
