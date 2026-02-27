@@ -489,7 +489,7 @@
             tension: 0.3,
             pointRadius: 3,
             pointHoverRadius: 5,
-            yAxisID: 'ySpend',
+            yAxisID: 'y',
           },
           {
             label: 'Ganho por dia',
@@ -501,7 +501,7 @@
             tension: 0.3,
             pointRadius: 4,
             pointHoverRadius: 6,
-            yAxisID: 'yGain',
+            yAxisID: 'y',
           },
         ],
       },
@@ -520,24 +520,13 @@
           },
         },
         scales: {
-          ySpend: {
+          y: {
             beginAtZero: true,
             ticks: {
               color: '#c8d7f5',
               callback: (value) => formatBRL(value),
             },
             grid: { color: 'rgba(148, 163, 184, 0.15)' },
-          },
-          yGain: {
-            beginAtZero: true,
-            position: 'right',
-            ticks: {
-              color: '#86efac',
-              callback: (value) => formatBRL(value),
-            },
-            grid: {
-              drawOnChartArea: false,
-            },
           },
           x: {
             ticks: { color: '#c8d7f5' },
