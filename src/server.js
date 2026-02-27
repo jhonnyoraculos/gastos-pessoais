@@ -1,4 +1,5 @@
 const path = require('path');
+const { spawnSync } = require('child_process');
 const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -74,6 +75,28 @@ app.use((error, req, res, next) => {
   return res.status(500).json({ error: 'Erro interno do servidor.' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+function runMigrationsOnBoot() {
+  if (process.env.SKIP_BOOT_MIGRATIONS === 'true') {
+    return;
+  }
+
+  const migrateScript = path.join(__dirname, 'db', 'migrate.js');
+  const result = spawnSync(process.execPath, [migrateScript], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+
+  if (result.status !== 0) {
+    throw new Error(`Falha ao rodar migrations no boot (exit ${result.status ?? 'desconhecido'}).`);
+  }
+}
+
+try {
+  runMigrationsOnBoot();
+  app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+  });
+} catch (error) {
+  console.error(error.message);
+  process.exit(1);
+}
