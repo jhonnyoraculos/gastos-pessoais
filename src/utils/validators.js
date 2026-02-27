@@ -5,6 +5,7 @@ const EXPENSE_TYPES = Object.freeze([
   'Lazer',
   'Outros',
 ]);
+const RESERVE_TYPES = Object.freeze(['Aporte', 'Resgate']);
 
 const PAYMENT_METHODS = Object.freeze(['Pix', 'Cartão', 'Dinheiro', 'Outro']);
 
@@ -466,9 +467,140 @@ function validateIncomesQuery(query) {
   return { errors, value };
 }
 
+function validateReservePayload(payload, { partial = false } = {}) {
+  const errors = [];
+  const value = {};
+
+  if (!payload || typeof payload !== 'object') {
+    return { errors: ['Payload invalido.'], value };
+  }
+
+  if ('date' in payload) {
+    if (typeof payload.date !== 'string' || !isValidDateString(payload.date.trim())) {
+      errors.push('date deve estar no formato YYYY-MM-DD.');
+    } else {
+      value.date = payload.date.trim();
+    }
+  } else if (!partial) {
+    errors.push('date e obrigatorio.');
+  }
+
+  if ('amount' in payload) {
+    const parsed = parseMoneyField(payload.amount, 'amount', { min: 0, allowZero: false });
+    if (parsed.error) errors.push(parsed.error);
+    else value.amount = parsed.value;
+  } else if (!partial) {
+    errors.push('amount e obrigatorio.');
+  }
+
+  if ('description' in payload) {
+    if (typeof payload.description !== 'string') {
+      errors.push('description precisa ser texto.');
+    } else {
+      const description = payload.description.trim();
+      if (description.length < 2 || description.length > 180) {
+        errors.push('description deve ter entre 2 e 180 caracteres.');
+      } else {
+        value.description = description;
+      }
+    }
+  } else if (!partial) {
+    errors.push('description e obrigatorio.');
+  }
+
+  if ('movement_type' in payload) {
+    if (typeof payload.movement_type !== 'string' || !RESERVE_TYPES.includes(payload.movement_type.trim())) {
+      errors.push(`movement_type invalido. Use: ${RESERVE_TYPES.join(', ')}.`);
+    } else {
+      value.movement_type = payload.movement_type.trim();
+    }
+  } else if (!partial) {
+    errors.push('movement_type e obrigatorio.');
+  }
+
+  if ('method' in payload) {
+    if (typeof payload.method !== 'string' || !PAYMENT_METHODS.includes(payload.method.trim())) {
+      errors.push(`method invalido. Use: ${PAYMENT_METHODS.join(', ')}.`);
+    } else {
+      value.method = payload.method.trim();
+    }
+  } else if (!partial) {
+    errors.push('method e obrigatorio.');
+  }
+
+  if ('notes' in payload) {
+    const parsed = parseOptionalString(payload.notes, { max: 1200 });
+    if (parsed.error) errors.push(parsed.error);
+    else if (!parsed.absent) value.notes = parsed.value;
+  } else if (!partial) {
+    value.notes = null;
+  }
+
+  if (partial && Object.keys(value).length === 0) {
+    errors.push('Nenhum campo valido enviado para atualizar reserva.');
+  }
+
+  return { errors, value };
+}
+
+function validateReservesQuery(query) {
+  const errors = [];
+  const value = {};
+
+  const month = parseMonth(query.month);
+  if (!month) {
+    errors.push('month e obrigatorio no formato YYYY-MM.');
+  } else {
+    value.month = month;
+  }
+
+  if (query.movement_type !== undefined && query.movement_type !== null && String(query.movement_type).trim() !== '') {
+    const movementType = String(query.movement_type).trim();
+    if (!RESERVE_TYPES.includes(movementType)) {
+      errors.push(`movement_type invalido. Use: ${RESERVE_TYPES.join(', ')}.`);
+    } else {
+      value.movement_type = movementType;
+    }
+  }
+
+  if (query.q !== undefined && query.q !== null && String(query.q).trim() !== '') {
+    const text = String(query.q).trim();
+    if (text.length > 140) {
+      errors.push('q nao pode ter mais de 140 caracteres.');
+    } else {
+      value.q = text;
+    }
+  }
+
+  let limit = 20;
+  if (query.limit !== undefined) {
+    const parsed = Number(query.limit);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 100) {
+      errors.push('limit deve ser inteiro entre 1 e 100.');
+    } else {
+      limit = parsed;
+    }
+  }
+  value.limit = limit;
+
+  let offset = 0;
+  if (query.offset !== undefined) {
+    const parsed = Number(query.offset);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+      errors.push('offset deve ser inteiro >= 0.');
+    } else {
+      offset = parsed;
+    }
+  }
+  value.offset = offset;
+
+  return { errors, value };
+}
+
 module.exports = {
   EXPENSE_TYPES,
   PAYMENT_METHODS,
+  RESERVE_TYPES,
   getCurrentMonth,
   getMonthRange,
   parseMonth,
@@ -480,5 +612,7 @@ module.exports = {
   validateIncomePayload,
   validateIncomesQuery,
   validateMonthlyIncomePayload,
+  validateReservePayload,
+  validateReservesQuery,
   validateSettingsPayload,
 };

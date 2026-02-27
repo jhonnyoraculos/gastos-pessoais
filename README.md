@@ -17,6 +17,7 @@ Aplicacao full-stack de controle de gastos pessoais com dashboard dark, CRUD com
   - Salario total (salario liquido + renda extra)
   - Gasto do mes
   - Ganhos do mes (lancamentos de receita)
+  - Reserva registrada separadamente (nao soma em ganhos)
   - Percentual do salario gasto
   - Sobra estimada
   - Saldo real (salario + ganhos - gastos)
@@ -24,6 +25,7 @@ Aplicacao full-stack de controle de gastos pessoais com dashboard dark, CRUD com
   - Graficos por tipo, categoria, serie diaria e serie mensal (ultimos 12 meses)
   - Ultimos 10 gastos com editar/excluir
 - Pagina de lancamentos com CRUD de gastos e ganhos, filtros, busca e carregamento incremental.
+- Pagina de lancamentos com CRUD de gastos, ganhos e reserva, com filtros, busca e carregamento incremental.
 - Pagina de configuracoes com:
   - Salario padrao
   - Salario por mes (override por `YYYY-MM`)
@@ -52,6 +54,7 @@ src/
   routes/dashboard.js
   routes/expenses.js
   routes/incomes.js
+  routes/reserves.js
   routes/categories.js
   routes/settings.js
   routes/monthlyIncome.js
@@ -60,6 +63,7 @@ db/
   migrations/001_init.sql
   migrations/002_monthly_income.sql
   migrations/003_incomes.sql
+  migrations/004_reserves.sql
 package.json
 render.yaml
 README.md
@@ -169,6 +173,16 @@ Passos:
 - `POST /api/incomes`
 - `PUT /api/incomes/:id`
 - `DELETE /api/incomes/:id`
+
+### Reserves (reserva)
+
+- `GET /api/reserves?month=YYYY-MM&movement_type=&q=&limit=&offset=`
+- `POST /api/reserves`
+- `PUT /api/reserves/:id`
+- `DELETE /api/reserves/:id`
+
+Observacao:
+- Lancamentos de reserva sao separados e nao entram no total de ganhos do dashboard.
 
 ### Dashboard
 

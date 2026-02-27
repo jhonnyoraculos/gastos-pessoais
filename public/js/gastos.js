@@ -11,6 +11,10 @@
     incomesTotal: 0,
     incomesLimit: 20,
     incomesOffset: 0,
+    reserves: [],
+    reservesTotal: 0,
+    reservesLimit: 20,
+    reservesOffset: 0,
   };
 
   const els = {};
@@ -26,12 +30,16 @@
 
     els.expenseDate.value = today;
     els.incomeDate.value = today;
+    els.reserveDate.value = today;
+
     els.listMonth.value = month;
     els.incomeListMonth.value = month;
+    els.reserveListMonth.value = month;
 
     await loadCategories();
     await reloadExpenses();
     await reloadIncomes();
+    await reloadReserves();
   }
 
   function cacheElements() {
@@ -52,6 +60,14 @@
     els.incomeMethod = document.getElementById('incomeMethod');
     els.incomeNotes = document.getElementById('incomeNotes');
 
+    els.reserveForm = document.getElementById('reserveForm');
+    els.reserveDate = document.getElementById('reserveDate');
+    els.reserveAmount = document.getElementById('reserveAmount');
+    els.reserveDescription = document.getElementById('reserveDescription');
+    els.reserveType = document.getElementById('reserveType');
+    els.reserveMethod = document.getElementById('reserveMethod');
+    els.reserveNotes = document.getElementById('reserveNotes');
+
     els.newCategoryName = document.getElementById('newCategoryName');
     els.newCategoryBtn = document.getElementById('newCategoryBtn');
 
@@ -69,6 +85,12 @@
     els.applyIncomeFiltersBtn = document.getElementById('applyIncomeFiltersBtn');
     els.clearIncomeFiltersBtn = document.getElementById('clearIncomeFiltersBtn');
 
+    els.reserveListMonth = document.getElementById('reserveListMonth');
+    els.reserveSearchInput = document.getElementById('reserveSearchInput');
+    els.reserveFilterType = document.getElementById('reserveFilterType');
+    els.applyReserveFiltersBtn = document.getElementById('applyReserveFiltersBtn');
+    els.clearReserveFiltersBtn = document.getElementById('clearReserveFiltersBtn');
+
     els.expensesBody = document.getElementById('expensesBody');
     els.loadMoreBtn = document.getElementById('loadMoreBtn');
     els.listMeta = document.getElementById('listMeta');
@@ -76,6 +98,10 @@
     els.incomesBody = document.getElementById('incomesBody');
     els.loadMoreIncomesBtn = document.getElementById('loadMoreIncomesBtn');
     els.incomeListMeta = document.getElementById('incomeListMeta');
+
+    els.reservesBody = document.getElementById('reservesBody');
+    els.loadMoreReservesBtn = document.getElementById('loadMoreReservesBtn');
+    els.reserveListMeta = document.getElementById('reserveListMeta');
 
     els.editForm = document.getElementById('editExpenseForm');
     els.editId = document.getElementById('editExpenseId');
@@ -95,11 +121,21 @@
     els.editIncomeCategory = document.getElementById('editIncomeCategory');
     els.editIncomeMethod = document.getElementById('editIncomeMethod');
     els.editIncomeNotes = document.getElementById('editIncomeNotes');
+
+    els.editReserveForm = document.getElementById('editReserveForm');
+    els.editReserveId = document.getElementById('editReserveId');
+    els.editReserveDate = document.getElementById('editReserveDate');
+    els.editReserveAmount = document.getElementById('editReserveAmount');
+    els.editReserveDescription = document.getElementById('editReserveDescription');
+    els.editReserveType = document.getElementById('editReserveType');
+    els.editReserveMethod = document.getElementById('editReserveMethod');
+    els.editReserveNotes = document.getElementById('editReserveNotes');
   }
 
   function bindEvents() {
     els.expenseForm.addEventListener('submit', handleCreateExpense);
     els.incomeForm.addEventListener('submit', handleCreateIncome);
+    els.reserveForm.addEventListener('submit', handleCreateReserve);
 
     els.newCategoryBtn.addEventListener('click', handleCreateCategory);
 
@@ -131,11 +167,27 @@
       await reloadIncomes();
     });
 
+    els.applyReserveFiltersBtn.addEventListener('click', reloadReserves);
+    els.clearReserveFiltersBtn.addEventListener('click', async () => {
+      els.reserveSearchInput.value = '';
+      els.reserveFilterType.value = '';
+      els.reserveListMonth.value = currentMonthISO();
+      await reloadReserves();
+    });
+    els.reserveSearchInput.addEventListener('keydown', async (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      await reloadReserves();
+    });
+
     els.loadMoreBtn.addEventListener('click', async () => {
       await loadExpenses(false);
     });
     els.loadMoreIncomesBtn.addEventListener('click', async () => {
       await loadIncomes(false);
+    });
+    els.loadMoreReservesBtn.addEventListener('click', async () => {
+      await loadReserves(false);
     });
 
     els.expensesBody.addEventListener('click', async (event) => {
@@ -162,8 +214,21 @@
       }
     });
 
+    els.reservesBody.addEventListener('click', async (event) => {
+      const target = event.target.closest('button[data-action]');
+      if (!target) return;
+      const reserveId = Number(target.dataset.id);
+      if (target.dataset.action === 'edit') {
+        openEditReserveModal(reserveId);
+      }
+      if (target.dataset.action === 'delete') {
+        await deleteReserve(reserveId);
+      }
+    });
+
     els.editForm.addEventListener('submit', handleEditExpense);
     els.editIncomeForm.addEventListener('submit', handleEditIncome);
+    els.editReserveForm.addEventListener('submit', handleEditReserve);
   }
 
   async function handleCreateExpense(event) {
@@ -216,6 +281,35 @@
       els.incomeNotes.value = '';
       els.incomeDate.value = todayISO();
       await reloadIncomes();
+    } catch (error) {
+      toast('error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateReserve(event) {
+    event.preventDefault();
+
+    const payload = {
+      date: els.reserveDate.value,
+      amount: Number(els.reserveAmount.value),
+      description: els.reserveDescription.value,
+      movement_type: els.reserveType.value,
+      method: els.reserveMethod.value,
+      notes: els.reserveNotes.value || null,
+    };
+
+    try {
+      setLoading(true, 'Salvando reserva...');
+      await apiFetch('/api/reserves', { method: 'POST', body: payload });
+      toast('success', 'Movimentacao de reserva cadastrada.');
+      els.reserveAmount.value = '';
+      els.reserveDescription.value = '';
+      els.reserveNotes.value = '';
+      els.reserveDate.value = todayISO();
+      els.reserveType.value = 'Aporte';
+      await reloadReserves();
     } catch (error) {
       toast('error', error.message);
     } finally {
@@ -304,6 +398,33 @@
     }
   }
 
+  async function handleEditReserve(event) {
+    event.preventDefault();
+    const reserveId = Number(els.editReserveId.value);
+    if (!reserveId) return;
+
+    const payload = {
+      date: els.editReserveDate.value,
+      amount: Number(els.editReserveAmount.value),
+      description: els.editReserveDescription.value,
+      movement_type: els.editReserveType.value,
+      method: els.editReserveMethod.value,
+      notes: els.editReserveNotes.value || null,
+    };
+
+    try {
+      setLoading(true, 'Atualizando reserva...');
+      await apiFetch(`/api/reserves/${reserveId}`, { method: 'PUT', body: payload });
+      closeModal('editReserveModal');
+      toast('success', 'Reserva atualizada.');
+      await reloadReserves();
+    } catch (error) {
+      toast('error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function buildExpenseParams() {
     const month = els.listMonth.value || currentMonthISO();
     const params = new URLSearchParams({
@@ -338,6 +459,23 @@
     if (q) params.set('q', q);
     if (category) params.set('category', category);
     if (method) params.set('method', method);
+
+    return params;
+  }
+
+  function buildReserveParams() {
+    const month = els.reserveListMonth.value || currentMonthISO();
+    const params = new URLSearchParams({
+      month,
+      limit: String(state.reservesLimit),
+      offset: String(state.reservesOffset),
+    });
+
+    const q = els.reserveSearchInput.value.trim();
+    const movementType = els.reserveFilterType.value;
+
+    if (q) params.set('q', q);
+    if (movementType) params.set('movement_type', movementType);
 
     return params;
   }
@@ -402,6 +540,36 @@
     }
   }
 
+  async function reloadReserves() {
+    state.reservesOffset = 0;
+    state.reserves = [];
+    await loadReserves(true);
+  }
+
+  async function loadReserves(replace = false) {
+    try {
+      setLoading(true, 'Carregando reservas...');
+      const params = buildReserveParams();
+      const data = await apiFetch(`/api/reserves?${params.toString()}`);
+
+      if (replace) {
+        state.reserves = data.items || [];
+      } else {
+        state.reserves = state.reserves.concat(data.items || []);
+      }
+
+      state.reservesTotal = Number(data.total || 0);
+      state.reservesOffset = state.reserves.length;
+
+      renderReserves();
+      refreshReservePagingState();
+    } catch (error) {
+      toast('error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function renderExpenses() {
     if (!state.expenses.length) {
       els.expensesBody.innerHTML = '<tr><td class="empty-row" colspan="8">Nenhum gasto encontrado.</td></tr>';
@@ -455,6 +623,32 @@
       .join('');
   }
 
+  function renderReserves() {
+    if (!state.reserves.length) {
+      els.reservesBody.innerHTML = '<tr><td class="empty-row" colspan="7">Nenhuma reserva encontrada.</td></tr>';
+      return;
+    }
+
+    els.reservesBody.innerHTML = state.reserves
+      .map(
+        (reserve) => `
+          <tr>
+            <td>${formatDateBR(reserve.date)}</td>
+            <td>${escapeHtml(reserve.description)}</td>
+            <td><span class="chip">${escapeHtml(reserve.movement_type)}</span></td>
+            <td>${escapeHtml(reserve.method)}</td>
+            <td>${formatBRL(reserve.amount)}</td>
+            <td>${escapeHtml(reserve.notes || '-')}</td>
+            <td class="action-row">
+              <button class="btn btn-secondary" data-action="edit" data-id="${reserve.id}">Editar</button>
+              <button class="btn btn-danger" data-action="delete" data-id="${reserve.id}">Excluir</button>
+            </td>
+          </tr>
+        `
+      )
+      .join('');
+  }
+
   function refreshExpensePagingState() {
     const hasMore = state.expensesOffset < state.expensesTotal;
     els.loadMoreBtn.style.display = hasMore ? 'inline-flex' : 'none';
@@ -465,6 +659,12 @@
     const hasMore = state.incomesOffset < state.incomesTotal;
     els.loadMoreIncomesBtn.style.display = hasMore ? 'inline-flex' : 'none';
     els.incomeListMeta.textContent = `Mostrando ${state.incomes.length} de ${state.incomesTotal} ganhos`;
+  }
+
+  function refreshReservePagingState() {
+    const hasMore = state.reservesOffset < state.reservesTotal;
+    els.loadMoreReservesBtn.style.display = hasMore ? 'inline-flex' : 'none';
+    els.reserveListMeta.textContent = `Mostrando ${state.reserves.length} de ${state.reservesTotal} reservas`;
   }
 
   async function loadCategories() {
@@ -530,6 +730,24 @@
     openModal('editIncomeModal');
   }
 
+  function openEditReserveModal(reserveId) {
+    const reserve = state.reserves.find((item) => item.id === reserveId);
+    if (!reserve) {
+      toast('error', 'Reserva nao encontrada na lista carregada.');
+      return;
+    }
+
+    els.editReserveId.value = reserve.id;
+    els.editReserveDate.value = reserve.date;
+    els.editReserveAmount.value = reserve.amount;
+    els.editReserveDescription.value = reserve.description;
+    els.editReserveType.value = reserve.movement_type;
+    els.editReserveMethod.value = reserve.method;
+    els.editReserveNotes.value = reserve.notes || '';
+
+    openModal('editReserveModal');
+  }
+
   async function deleteExpense(expenseId) {
     const confirmed = window.confirm('Confirma a exclusao deste gasto?');
     if (!confirmed) return;
@@ -555,6 +773,22 @@
       await apiFetch(`/api/incomes/${incomeId}`, { method: 'DELETE' });
       toast('success', 'Ganho excluido.');
       await reloadIncomes();
+    } catch (error) {
+      toast('error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function deleteReserve(reserveId) {
+    const confirmed = window.confirm('Confirma a exclusao desta reserva?');
+    if (!confirmed) return;
+
+    try {
+      setLoading(true, 'Excluindo reserva...');
+      await apiFetch(`/api/reserves/${reserveId}`, { method: 'DELETE' });
+      toast('success', 'Reserva excluida.');
+      await reloadReserves();
     } catch (error) {
       toast('error', error.message);
     } finally {

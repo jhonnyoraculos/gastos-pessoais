@@ -28,7 +28,7 @@
       <div class="main">
         <header class="topbar">
           <div>
-            <h2>Cadastro de gastos e ganhos</h2>
+            <h2>Cadastro de gastos, ganhos e reserva</h2>
             <div class="topbar-subtitle">Adicione, edite, filtre e acompanhe seus lancamentos</div>
           </div>
           <div class="topbar-actions">
@@ -136,6 +136,49 @@
 
           <section class="panel">
             <div class="panel-header">
+              <h3 class="panel-title">Movimentacao de reserva</h3>
+            </div>
+            <form id="reserveForm" class="form-grid">
+              <div class="field">
+                <label for="reserveDate">Data</label>
+                <input id="reserveDate" type="date" required />
+              </div>
+              <div class="field">
+                <label for="reserveAmount">Valor (R$)</label>
+                <input id="reserveAmount" type="number" min="0.01" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="reserveDescription">Descricao</label>
+                <input id="reserveDescription" type="text" maxlength="180" required />
+              </div>
+              <div class="field">
+                <label for="reserveType">Tipo de movimento</label>
+                <select id="reserveType" required>
+                  <option value="Aporte">Aporte</option>
+                  <option value="Resgate">Resgate</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="reserveMethod">Metodo</label>
+                <select id="reserveMethod" required>
+                  <option value="Pix">Pix</option>
+                  <option value="Cartão">Cartão</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <div class="field" style="grid-column: span 2">
+                <label for="reserveNotes">Observacoes</label>
+                <textarea id="reserveNotes" maxlength="1200" placeholder="Opcional"></textarea>
+              </div>
+              <div class="action-row" style="grid-column: 1 / -1">
+                <button type="submit" class="btn btn-primary">Salvar reserva</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
               <h3 class="panel-title">Lista de gastos</h3>
               <div class="topbar-actions">
                 <input id="listMonth" type="month" />
@@ -225,6 +268,47 @@
             <div class="panel-header" style="margin-top: 12px">
               <div id="incomeListMeta" class="footer-note"></div>
               <button id="loadMoreIncomesBtn" class="btn btn-secondary" type="button">Carregar mais</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Lista de reserva</h3>
+              <div class="topbar-actions">
+                <input id="reserveListMonth" type="month" />
+                <input id="reserveSearchInput" type="text" placeholder="Buscar por descricao/observacao" />
+                <select id="reserveFilterType">
+                  <option value="">Todos tipos</option>
+                  <option value="Aporte">Aporte</option>
+                  <option value="Resgate">Resgate</option>
+                </select>
+                <button id="applyReserveFiltersBtn" class="btn btn-secondary" type="button">Aplicar</button>
+                <button id="clearReserveFiltersBtn" class="btn btn-ghost" type="button">Limpar</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="table-reserves">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descricao</th>
+                    <th>Tipo</th>
+                    <th>Metodo</th>
+                    <th>Valor</th>
+                    <th>Observacoes</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="reservesBody">
+                  <tr>
+                    <td class="empty-row" colspan="7">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-header" style="margin-top: 12px">
+              <div id="reserveListMeta" class="footer-note"></div>
+              <button id="loadMoreReservesBtn" class="btn btn-secondary" type="button">Carregar mais</button>
             </div>
           </section>
         </main>
@@ -331,6 +415,57 @@
           </div>
           <div class="action-row" style="grid-column: 1 / -1">
             <button type="button" class="btn btn-ghost" data-close-modal="editIncomeModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="editReserveModal" aria-hidden="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <h3>Editar reserva</h3>
+            <p>Atualize os dados da movimentacao.</p>
+          </div>
+          <button class="close-btn" data-close-modal="editReserveModal">x</button>
+        </div>
+        <form id="editReserveForm" class="form-grid two-cols">
+          <input id="editReserveId" type="hidden" />
+          <div class="field">
+            <label for="editReserveDate">Data</label>
+            <input id="editReserveDate" type="date" required />
+          </div>
+          <div class="field">
+            <label for="editReserveAmount">Valor</label>
+            <input id="editReserveAmount" type="number" min="0.01" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="editReserveDescription">Descricao</label>
+            <input id="editReserveDescription" type="text" maxlength="180" required />
+          </div>
+          <div class="field">
+            <label for="editReserveType">Tipo de movimento</label>
+            <select id="editReserveType" required>
+              <option value="Aporte">Aporte</option>
+              <option value="Resgate">Resgate</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="editReserveMethod">Metodo</label>
+            <select id="editReserveMethod" required>
+              <option value="Pix">Pix</option>
+              <option value="Cartão">Cartão</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: 1 / -1">
+            <label for="editReserveNotes">Observacoes</label>
+            <textarea id="editReserveNotes" maxlength="1200"></textarea>
+          </div>
+          <div class="action-row" style="grid-column: 1 / -1">
+            <button type="button" class="btn btn-ghost" data-close-modal="editReserveModal">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar</button>
           </div>
         </form>

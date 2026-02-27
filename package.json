@@ -7,7 +7,7 @@
     "start": "npm run migrate && node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "node src/db/migrate.js",
-    "check": "node --check src/server.js && node --check src/routes/dashboard.js && node --check src/routes/expenses.js && node --check src/routes/incomes.js && node --check src/routes/categories.js && node --check src/routes/settings.js && node --check src/routes/monthlyIncome.js && node --check src/db/migrate.js && node --check src/utils/validators.js && node --check public/js/ui.js && node --check public/js/dashboard.js && node --check public/js/gastos.js && node --check public/js/config.js"
+    "check": "node --check src/server.js && node --check src/routes/dashboard.js && node --check src/routes/expenses.js && node --check src/routes/incomes.js && node --check src/routes/reserves.js && node --check src/routes/categories.js && node --check src/routes/settings.js && node --check src/routes/monthlyIncome.js && node --check src/db/migrate.js && node --check src/utils/validators.js && node --check public/js/ui.js && node --check public/js/dashboard.js && node --check public/js/gastos.js && node --check public/js/config.js"
   },
   "keywords": [
     "express",
