@@ -623,7 +623,7 @@
       position,
       align: 'start',
       labels: {
-        color: '#dbeafe',
+        color: '#ffffff',
         usePointStyle: true,
         boxWidth: 10,
         boxHeight: 10,
@@ -645,6 +645,7 @@
             const value = Number(datasetValues[index] ?? 0);
             return {
               text: labelText === 'Sem dados' ? labelText : `${labelText}: ${formatBRL(value)}`,
+              fontColor: '#ffffff',
               fillStyle: colors[index],
               strokeStyle: '#0c172d',
               lineWidth: 1,
