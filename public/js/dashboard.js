@@ -639,17 +639,22 @@
           const colors = Array.isArray(dataset.backgroundColor)
             ? dataset.backgroundColor
             : labels.map(() => dataset.backgroundColor || '#60a5fa');
+          const baseLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
 
-          return labels.map((label, index) => {
+          return baseLabels.map((labelItem) => {
+            const index = Number(labelItem.index ?? 0);
+            const label = labels[index];
             const labelText = String(label || '');
             const value = Number(datasetValues[index] ?? 0);
             return {
+              ...labelItem,
               text: labelText === 'Sem dados' ? labelText : `${labelText}: ${formatBRL(value)}`,
+              color: '#ffffff',
               fontColor: '#ffffff',
-              fillStyle: colors[index],
+              fillStyle: colors[index] || labelItem.fillStyle,
               strokeStyle: '#0c172d',
               lineWidth: 1,
-              hidden: !chart.getDataVisibility(index),
+              hidden: labelItem.hidden,
               index,
               datasetIndex: 0,
               pointStyle: 'circle',
