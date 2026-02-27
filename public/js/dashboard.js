@@ -5,6 +5,42 @@
   const TYPES = ['Essencial', 'Besteira', 'Investimento', 'Lazer', 'Outros'];
   const TYPE_COLORS = ['#38bdf8', '#f97316', '#22c55e', '#f59e0b', '#a78bfa'];
 
+  const barValueLabelPlugin = {
+    id: 'barValueLabel',
+    afterDatasetsDraw(chart, _args, pluginOptions) {
+      const datasetIndex = Number(pluginOptions?.datasetIndex ?? 0);
+      const dataset = chart.data?.datasets?.[datasetIndex];
+      const meta = chart.getDatasetMeta(datasetIndex);
+
+      if (!dataset || !meta || meta.hidden) {
+        return;
+      }
+
+      const ctx = chart.ctx;
+      const color = pluginOptions?.color || '#dbeafe';
+      const font = pluginOptions?.font || '600 12px Inter, system-ui, sans-serif';
+      const offsetY = Number.isFinite(Number(pluginOptions?.offsetY)) ? Number(pluginOptions.offsetY) : 6;
+
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.font = font;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+
+      meta.data.forEach((bar, index) => {
+        const raw = Number(dataset.data[index] || 0);
+        if (!Number.isFinite(raw) || raw <= 0) {
+          return;
+        }
+
+        const point = bar.tooltipPosition();
+        ctx.fillText(`${raw.toFixed(1)}%`, point.x, point.y - offsetY);
+      });
+
+      ctx.restore();
+    },
+  };
+
   const state = {
     month: currentMonthISO(),
     type: '',
@@ -37,8 +73,10 @@
 
     els.salaryTotal = document.getElementById('metricSalaryTotal');
     els.spendMonth = document.getElementById('metricSpendMonth');
+    els.gainMonth = document.getElementById('metricGainMonth');
     els.salaryPercent = document.getElementById('metricSalaryPercent');
     els.estimatedLeft = document.getElementById('metricEstimatedLeft');
+    els.realLeft = document.getElementById('metricRealLeft');
     els.budget = document.getElementById('metricBudget');
     els.budgetLeft = document.getElementById('metricBudgetLeft');
     els.spendToday = document.getElementById('metricSpendToday');
@@ -238,9 +276,11 @@
 
     els.salaryTotal.textContent = formatBRL(payload.salary_total || 0);
     els.spendMonth.textContent = formatBRL(totals.spend_month || 0);
+    els.gainMonth.textContent = formatBRL(totals.gain_month || 0);
     els.salaryPercent.textContent =
       totals.salary_spent_percent === null ? 'Configure seu salario' : formatPercent(totals.salary_spent_percent);
     els.estimatedLeft.textContent = formatBRL(totals.estimated_left || 0);
+    els.realLeft.textContent = formatBRL(totals.real_left || 0);
     els.budget.textContent = formatBRL(payload.monthly_budget || 0);
     els.budgetLeft.textContent = totals.budget_left === null ? '-' : formatBRL(totals.budget_left);
     els.spendToday.textContent = formatBRL(totals.spend_today || 0);
@@ -305,9 +345,22 @@
         ],
       },
       options: chartOptions({
+        layout: {
+          padding: {
+            top: 16,
+          },
+        },
+        plugins: {
+          barValueLabel: {
+            datasetIndex: 0,
+            color: '#dbeafe',
+            offsetY: 8,
+          },
+        },
         scales: {
           y: {
             beginAtZero: true,
+            grace: '12%',
             ticks: {
               color: '#c8d7f5',
               callback: (value) => `${value}%`,
@@ -320,6 +373,7 @@
           },
         },
       }),
+      plugins: [barValueLabelPlugin],
     });
 
     renderOrReplaceChart('dailyChart', document.getElementById('chartDaily'), {

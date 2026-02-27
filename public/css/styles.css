@@ -603,6 +603,13 @@ textarea {
     display: none;
   }
 
+  .table-incomes th:nth-child(3),
+  .table-incomes td:nth-child(3),
+  .table-incomes th:nth-child(6),
+  .table-incomes td:nth-child(6) {
+    display: none;
+  }
+
   .modal {
     padding: 0;
   }

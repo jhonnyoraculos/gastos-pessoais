@@ -89,6 +89,30 @@ function buildFilterClause({ start, end, type, category }) {
   };
 }
 
+function buildIncomeFilterClause({ start, end, category }) {
+  const params = [];
+  const filters = [];
+  const addParam = (input) => {
+    params.push(input);
+    return `$${params.length}`;
+  };
+
+  filters.push(`i.date >= ${addParam(start)} AND i.date < ${addParam(end)}`);
+
+  if (category) {
+    if (/^\d+$/.test(category)) {
+      filters.push(`i.category_id = ${addParam(Number(category))}`);
+    } else {
+      filters.push(`LOWER(c.name) = LOWER(${addParam(category)})`);
+    }
+  }
+
+  return {
+    whereClause: `WHERE ${filters.join(' AND ')}`,
+    params,
+  };
+}
+
 async function getEffectiveSettings(month) {
   await pool.query('INSERT INTO gp_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
   const [baseRes, monthlyIncomeRes] = await Promise.all([
@@ -170,8 +194,13 @@ router.get('/', async (req, res, next) => {
       type: type || null,
       category: category || null,
     });
+    const incomeMonthFilters = buildIncomeFilterClause({
+      start: monthRange.start,
+      end: monthRange.end,
+      category: category || null,
+    });
 
-    const [spendMonthRes, byTypeRes, byCategoryRes, dailyRes, monthlyRes, latestRes] = await Promise.all([
+    const [spendMonthRes, gainMonthRes, byTypeRes, byCategoryRes, dailyRes, monthlyRes, latestRes] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -179,6 +208,15 @@ router.get('/', async (req, res, next) => {
           ${monthFilters.whereClause}
         `,
         monthFilters.params
+      ),
+      pool.query(
+        `
+          SELECT COALESCE(SUM(i.amount), 0) AS total
+          FROM gp_incomes i
+          JOIN gp_categories c ON c.id = i.category_id
+          ${incomeMonthFilters.whereClause}
+        `,
+        incomeMonthFilters.params
       ),
       pool.query(
         `
@@ -242,7 +280,9 @@ router.get('/', async (req, res, next) => {
     ]);
 
     const spendMonth = toMoney(spendMonthRes.rows[0].total);
+    const gainMonth = toMoney(gainMonthRes.rows[0].total);
     const estimatedLeft = toMoney(salaryTotal - spendMonth);
+    const realLeft = toMoney(salaryTotal + gainMonth - spendMonth);
     const budgetLeft = monthlyBudget > 0 ? toMoney(monthlyBudget - spendMonth) : null;
     const salarySpentPercent = salaryTotal > 0 ? round1((spendMonth / salaryTotal) * 100) : null;
 
@@ -292,6 +332,8 @@ router.get('/', async (req, res, next) => {
 
     let spendToday = 0;
     let spendWeek = 0;
+    let gainToday = 0;
+    let gainWeek = 0;
 
     const currentMonth = getCurrentMonth();
     if (month === currentMonth) {
@@ -312,8 +354,18 @@ router.get('/', async (req, res, next) => {
         type: type || null,
         category: category || null,
       });
+      const incomeTodayFilters = buildIncomeFilterClause({
+        start: todayIso,
+        end: tomorrowIso,
+        category: category || null,
+      });
+      const incomeWeekFilters = buildIncomeFilterClause({
+        start: weekStartIso,
+        end: tomorrowIso,
+        category: category || null,
+      });
 
-      const [todayRes, weekRes] = await Promise.all([
+      const [todayRes, weekRes, gainTodayRes, gainWeekRes] = await Promise.all([
         pool.query(
           `
             SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -330,10 +382,30 @@ router.get('/', async (req, res, next) => {
           `,
           weekFilters.params
         ),
+        pool.query(
+          `
+            SELECT COALESCE(SUM(i.amount), 0) AS total
+            FROM gp_incomes i
+            JOIN gp_categories c ON c.id = i.category_id
+            ${incomeTodayFilters.whereClause}
+          `,
+          incomeTodayFilters.params
+        ),
+        pool.query(
+          `
+            SELECT COALESCE(SUM(i.amount), 0) AS total
+            FROM gp_incomes i
+            JOIN gp_categories c ON c.id = i.category_id
+            ${incomeWeekFilters.whereClause}
+          `,
+          incomeWeekFilters.params
+        ),
       ]);
 
       spendToday = toMoney(todayRes.rows[0].total);
       spendWeek = toMoney(weekRes.rows[0].total);
+      gainToday = toMoney(gainTodayRes.rows[0].total);
+      gainWeek = toMoney(gainWeekRes.rows[0].total);
     }
 
     res.json({
@@ -347,9 +419,13 @@ router.get('/', async (req, res, next) => {
       totals: {
         spend_today: spendToday,
         spend_week: spendWeek,
+        gain_today: gainToday,
+        gain_week: gainWeek,
         spend_month: spendMonth,
+        gain_month: gainMonth,
         salary_spent_percent: salarySpentPercent,
         estimated_left: estimatedLeft,
+        real_left: realLeft,
         budget_left: budgetLeft,
       },
       by_type: byType,

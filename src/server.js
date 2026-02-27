@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 
 const dashboardRoutes = require('./routes/dashboard');
 const expensesRoutes = require('./routes/expenses');
+const incomesRoutes = require('./routes/incomes');
 const categoriesRoutes = require('./routes/categories');
 const settingsRoutes = require('./routes/settings');
 const monthlyIncomeRoutes = require('./routes/monthlyIncome');
@@ -51,6 +52,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/monthly-income', monthlyIncomeRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/expenses', expensesRoutes);
+app.use('/api/incomes', incomesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 app.use('/api', (req, res) => {

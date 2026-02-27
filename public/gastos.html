@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gastos Pessoais | Gastos</title>
+    <title>Gastos Pessoais | Lancamentos</title>
     <link rel="stylesheet" href="/css/styles.css" />
     <script src="/js/ui.js" defer></script>
     <script src="/js/gastos.js" defer></script>
@@ -20,16 +20,16 @@
         </div>
         <nav class="nav-links">
           <a class="nav-link" href="/index.html"><span class="nav-icon"></span>Dashboard</a>
-          <a class="nav-link active" href="/gastos.html"><span class="nav-icon"></span>Gastos</a>
-          <a class="nav-link" href="/config.html"><span class="nav-icon"></span>Configurações</a>
+          <a class="nav-link active" href="/gastos.html"><span class="nav-icon"></span>Lancamentos</a>
+          <a class="nav-link" href="/config.html"><span class="nav-icon"></span>Configuracoes</a>
         </nav>
       </aside>
 
       <div class="main">
         <header class="topbar">
           <div>
-            <h2>Cadastro e gestão de gastos</h2>
-            <div class="topbar-subtitle">Adicione, edite, filtre e acompanhe seus lançamentos</div>
+            <h2>Cadastro de gastos e ganhos</h2>
+            <div class="topbar-subtitle">Adicione, edite, filtre e acompanhe seus lancamentos</div>
           </div>
           <div class="topbar-actions">
             <a class="btn btn-secondary" href="/index.html">Voltar ao dashboard</a>
@@ -51,7 +51,7 @@
                 <input id="expenseAmount" type="number" min="0.01" step="0.01" required />
               </div>
               <div class="field">
-                <label for="expenseDescription">Descrição</label>
+                <label for="expenseDescription">Descricao</label>
                 <input id="expenseDescription" type="text" maxlength="180" required />
               </div>
               <div class="field">
@@ -59,7 +59,7 @@
                 <select id="expenseCategory" required></select>
               </div>
               <div class="field">
-                <label for="expenseType">Tipo/Classificação</label>
+                <label for="expenseType">Tipo/Classificacao</label>
                 <select id="expenseType" required>
                   <option value="Essencial">Essencial</option>
                   <option value="Besteira">Besteira</option>
@@ -69,7 +69,7 @@
                 </select>
               </div>
               <div class="field">
-                <label for="expenseMethod">Método</label>
+                <label for="expenseMethod">Metodo</label>
                 <select id="expenseMethod" required>
                   <option value="Pix">Pix</option>
                   <option value="Cartão">Cartão</option>
@@ -78,13 +78,13 @@
                 </select>
               </div>
               <div class="field" style="grid-column: span 2">
-                <label for="expenseNotes">Observações</label>
+                <label for="expenseNotes">Observacoes</label>
                 <textarea id="expenseNotes" maxlength="1200" placeholder="Opcional"></textarea>
               </div>
               <div class="field" style="grid-column: span 2">
                 <label>Nova categoria (inline)</label>
                 <div class="inline-group">
-                  <input id="newCategoryName" type="text" maxlength="80" placeholder="Ex.: Farmácia" />
+                  <input id="newCategoryName" type="text" maxlength="80" placeholder="Ex.: Farmacia" />
                   <button type="button" id="newCategoryBtn" class="btn btn-secondary">Criar</button>
                 </div>
               </div>
@@ -96,10 +96,50 @@
 
           <section class="panel">
             <div class="panel-header">
+              <h3 class="panel-title">Novo ganho</h3>
+            </div>
+            <form id="incomeForm" class="form-grid">
+              <div class="field">
+                <label for="incomeDate">Data</label>
+                <input id="incomeDate" type="date" required />
+              </div>
+              <div class="field">
+                <label for="incomeAmount">Valor (R$)</label>
+                <input id="incomeAmount" type="number" min="0.01" step="0.01" required />
+              </div>
+              <div class="field">
+                <label for="incomeDescription">Descricao</label>
+                <input id="incomeDescription" type="text" maxlength="180" required />
+              </div>
+              <div class="field">
+                <label for="incomeCategory">Categoria</label>
+                <select id="incomeCategory" required></select>
+              </div>
+              <div class="field">
+                <label for="incomeMethod">Metodo</label>
+                <select id="incomeMethod" required>
+                  <option value="Pix">Pix</option>
+                  <option value="Cartão">Cartão</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <div class="field" style="grid-column: span 2">
+                <label for="incomeNotes">Observacoes</label>
+                <textarea id="incomeNotes" maxlength="1200" placeholder="Opcional"></textarea>
+              </div>
+              <div class="action-row" style="grid-column: 1 / -1">
+                <button type="submit" class="btn btn-primary">Salvar ganho</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
               <h3 class="panel-title">Lista de gastos</h3>
               <div class="topbar-actions">
                 <input id="listMonth" type="month" />
-                <input id="searchInput" type="text" placeholder="Buscar por descrição/observação" />
+                <input id="searchInput" type="text" placeholder="Buscar por descricao/observacao" />
                 <select id="filterCategory">
                   <option value="">Todas categorias</option>
                 </select>
@@ -120,13 +160,13 @@
                 <thead>
                   <tr>
                     <th>Data</th>
-                    <th>Descrição</th>
+                    <th>Descricao</th>
                     <th>Categoria</th>
                     <th>Tipo</th>
-                    <th>Método</th>
+                    <th>Metodo</th>
                     <th>Valor</th>
-                    <th>Observações</th>
-                    <th>Ações</th>
+                    <th>Observacoes</th>
+                    <th>Acoes</th>
                   </tr>
                 </thead>
                 <tbody id="expensesBody">
@@ -141,6 +181,52 @@
               <button id="loadMoreBtn" class="btn btn-secondary" type="button">Carregar mais</button>
             </div>
           </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Lista de ganhos</h3>
+              <div class="topbar-actions">
+                <input id="incomeListMonth" type="month" />
+                <input id="incomeSearchInput" type="text" placeholder="Buscar por descricao/observacao" />
+                <select id="incomeFilterCategory">
+                  <option value="">Todas categorias</option>
+                </select>
+                <select id="incomeFilterMethod">
+                  <option value="">Todos metodos</option>
+                  <option value="Pix">Pix</option>
+                  <option value="Cartão">Cartão</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Outro">Outro</option>
+                </select>
+                <button id="applyIncomeFiltersBtn" class="btn btn-secondary" type="button">Aplicar</button>
+                <button id="clearIncomeFiltersBtn" class="btn btn-ghost" type="button">Limpar</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="table-incomes">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descricao</th>
+                    <th>Categoria</th>
+                    <th>Metodo</th>
+                    <th>Valor</th>
+                    <th>Observacoes</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="incomesBody">
+                  <tr>
+                    <td class="empty-row" colspan="7">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="panel-header" style="margin-top: 12px">
+              <div id="incomeListMeta" class="footer-note"></div>
+              <button id="loadMoreIncomesBtn" class="btn btn-secondary" type="button">Carregar mais</button>
+            </div>
+          </section>
         </main>
       </div>
     </div>
@@ -150,9 +236,9 @@
         <div class="modal-header">
           <div>
             <h3>Editar gasto</h3>
-            <p>Atualize os dados do lançamento.</p>
+            <p>Atualize os dados do lancamento.</p>
           </div>
-          <button class="close-btn" data-close-modal="editExpenseModal">×</button>
+          <button class="close-btn" data-close-modal="editExpenseModal">x</button>
         </div>
         <form id="editExpenseForm" class="form-grid two-cols">
           <input id="editExpenseId" type="hidden" />
@@ -165,7 +251,7 @@
             <input id="editAmount" type="number" min="0.01" step="0.01" required />
           </div>
           <div class="field">
-            <label for="editDescription">Descrição</label>
+            <label for="editDescription">Descricao</label>
             <input id="editDescription" type="text" maxlength="180" required />
           </div>
           <div class="field">
@@ -173,7 +259,7 @@
             <select id="editCategory" required></select>
           </div>
           <div class="field">
-            <label for="editType">Tipo/Classificação</label>
+            <label for="editType">Tipo/Classificacao</label>
             <select id="editType" required>
               <option value="Essencial">Essencial</option>
               <option value="Besteira">Besteira</option>
@@ -183,7 +269,7 @@
             </select>
           </div>
           <div class="field">
-            <label for="editMethod">Método</label>
+            <label for="editMethod">Metodo</label>
             <select id="editMethod" required>
               <option value="Pix">Pix</option>
               <option value="Cartão">Cartão</option>
@@ -192,11 +278,59 @@
             </select>
           </div>
           <div class="field" style="grid-column: 1 / -1">
-            <label for="editNotes">Observações</label>
+            <label for="editNotes">Observacoes</label>
             <textarea id="editNotes" maxlength="1200"></textarea>
           </div>
           <div class="action-row" style="grid-column: 1 / -1">
             <button type="button" class="btn btn-ghost" data-close-modal="editExpenseModal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="modal" id="editIncomeModal" aria-hidden="true">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div>
+            <h3>Editar ganho</h3>
+            <p>Atualize os dados do lancamento.</p>
+          </div>
+          <button class="close-btn" data-close-modal="editIncomeModal">x</button>
+        </div>
+        <form id="editIncomeForm" class="form-grid two-cols">
+          <input id="editIncomeId" type="hidden" />
+          <div class="field">
+            <label for="editIncomeDate">Data</label>
+            <input id="editIncomeDate" type="date" required />
+          </div>
+          <div class="field">
+            <label for="editIncomeAmount">Valor</label>
+            <input id="editIncomeAmount" type="number" min="0.01" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="editIncomeDescription">Descricao</label>
+            <input id="editIncomeDescription" type="text" maxlength="180" required />
+          </div>
+          <div class="field">
+            <label for="editIncomeCategory">Categoria</label>
+            <select id="editIncomeCategory" required></select>
+          </div>
+          <div class="field">
+            <label for="editIncomeMethod">Metodo</label>
+            <select id="editIncomeMethod" required>
+              <option value="Pix">Pix</option>
+              <option value="Cartão">Cartão</option>
+              <option value="Dinheiro">Dinheiro</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column: 1 / -1">
+            <label for="editIncomeNotes">Observacoes</label>
+            <textarea id="editIncomeNotes" maxlength="1200"></textarea>
+          </div>
+          <div class="action-row" style="grid-column: 1 / -1">
+            <button type="button" class="btn btn-ghost" data-close-modal="editIncomeModal">Cancelar</button>
             <button type="submit" class="btn btn-primary">Salvar</button>
           </div>
         </form>

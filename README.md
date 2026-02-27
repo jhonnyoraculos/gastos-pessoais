@@ -16,12 +16,14 @@ Aplicacao full-stack de controle de gastos pessoais com dashboard dark, CRUD com
 - Dashboard mensal com:
   - Salario total (salario liquido + renda extra)
   - Gasto do mes
+  - Ganhos do mes (lancamentos de receita)
   - Percentual do salario gasto
   - Sobra estimada
+  - Saldo real (salario + ganhos - gastos)
   - Orcamento e saldo do orcamento
   - Graficos por tipo, categoria, serie diaria e serie mensal (ultimos 12 meses)
   - Ultimos 10 gastos com editar/excluir
-- Pagina de gastos com CRUD, filtros, busca e carregamento incremental.
+- Pagina de lancamentos com CRUD de gastos e ganhos, filtros, busca e carregamento incremental.
 - Pagina de configuracoes com:
   - Salario padrao
   - Salario por mes (override por `YYYY-MM`)
@@ -49,6 +51,7 @@ src/
   db/migrate.js
   routes/dashboard.js
   routes/expenses.js
+  routes/incomes.js
   routes/categories.js
   routes/settings.js
   routes/monthlyIncome.js
@@ -56,6 +59,7 @@ src/
 db/
   migrations/001_init.sql
   migrations/002_monthly_income.sql
+  migrations/003_incomes.sql
 package.json
 render.yaml
 README.md
@@ -158,6 +162,13 @@ Passos:
 - `POST /api/expenses`
 - `PUT /api/expenses/:id`
 - `DELETE /api/expenses/:id`
+
+### Incomes (ganhos)
+
+- `GET /api/incomes?month=YYYY-MM&category=&method=&q=&limit=&offset=`
+- `POST /api/incomes`
+- `PUT /api/incomes/:id`
+- `DELETE /api/incomes/:id`
 
 ### Dashboard
 
