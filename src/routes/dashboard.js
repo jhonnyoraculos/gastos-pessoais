@@ -29,6 +29,23 @@ function formatIsoDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function monthStartFromYearMonth(monthText) {
+  const [year, month] = monthText.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, 1));
+}
+
+function addUtcMonths(date, delta) {
+  const next = new Date(date);
+  next.setUTCMonth(next.getUTCMonth() + delta);
+  return next;
+}
+
+function formatYearMonthUtc(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
 function nextDay(dateText) {
   const date = new Date(`${dateText}T00:00:00`);
   date.setDate(date.getDate() + 1);
@@ -98,6 +115,11 @@ router.get('/', async (req, res, next) => {
 
     const category = req.query.category ? String(req.query.category).trim() : '';
     const monthRange = getMonthRange(month);
+    const selectedMonthStart = monthStartFromYearMonth(month);
+    const monthlyStart = addUtcMonths(selectedMonthStart, -11);
+    const monthlyEnd = addUtcMonths(selectedMonthStart, 1);
+    const monthlyRangeStart = monthlyStart.toISOString().slice(0, 10);
+    const monthlyRangeEnd = monthlyEnd.toISOString().slice(0, 10);
 
     const settingsRow = await getSettings();
     const netSalary = toMoney(settingsRow.net_salary);
@@ -112,8 +134,14 @@ router.get('/', async (req, res, next) => {
       type: type || null,
       category: category || null,
     });
+    const monthlyFilters = buildFilterClause({
+      start: monthlyRangeStart,
+      end: monthlyRangeEnd,
+      type: type || null,
+      category: category || null,
+    });
 
-    const [spendMonthRes, byTypeRes, byCategoryRes, dailyRes, latestRes] = await Promise.all([
+    const [spendMonthRes, byTypeRes, byCategoryRes, dailyRes, monthlyRes, latestRes] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -151,6 +179,16 @@ router.get('/', async (req, res, next) => {
           ORDER BY day
         `,
         monthFilters.params
+      ),
+      pool.query(
+        `
+          SELECT to_char(date_trunc('month', e.date), 'YYYY-MM') AS month, COALESCE(SUM(e.amount), 0) AS total
+          ${baseFrom}
+          ${monthlyFilters.whereClause}
+          GROUP BY 1
+          ORDER BY 1
+        `,
+        monthlyFilters.params
       ),
       pool.query(
         `
@@ -206,6 +244,19 @@ router.get('/', async (req, res, next) => {
       dailySeries.push({
         day,
         total_spend: dailyMap.get(day) || 0,
+      });
+    }
+
+    const monthlyMap = new Map(
+      monthlyRes.rows.map((row) => [row.month, toMoney(row.total)])
+    );
+    const monthlySeries = [];
+    for (let index = 0; index < 12; index += 1) {
+      const iterMonth = addUtcMonths(monthlyStart, index);
+      const yearMonth = formatYearMonthUtc(iterMonth);
+      monthlySeries.push({
+        month: yearMonth,
+        total_spend: monthlyMap.get(yearMonth) || 0,
       });
     }
 
@@ -272,6 +323,7 @@ router.get('/', async (req, res, next) => {
       by_type: byType,
       by_category: byCategory,
       daily_series: dailySeries,
+      monthly_series: monthlySeries,
       latest_expenses: latestRes.rows.map((row) => ({
         id: Number(row.id),
         date: toDateString(row.date),

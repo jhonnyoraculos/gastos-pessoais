@@ -260,6 +260,9 @@
 
     const dailyLabels = payload.daily_series.map((item) => String(item.day).padStart(2, '0'));
     const dailyValues = payload.daily_series.map((item) => Number(item.total_spend || 0));
+    const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series : [];
+    const monthlyLabels = monthlySeries.map((item) => formatMonthLabel(item.month));
+    const monthlyValues = monthlySeries.map((item) => Number(item.total_spend || 0));
 
     renderOrReplaceChart('typeSpendChart', document.getElementById('chartTypeSpend'), {
       type: 'doughnut',
@@ -366,6 +369,50 @@
         plugins: { legend: { labels: { color: '#dbeafe' } } },
       }),
     });
+
+    renderOrReplaceChart('monthlyChart', document.getElementById('chartMonthly'), {
+      type: 'line',
+      data: {
+        labels: monthlyLabels,
+        datasets: [
+          {
+            label: 'Gasto mensal',
+            data: monthlyValues,
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.16)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2.5,
+          },
+        ],
+      },
+      options: chartOptions({
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#c8d7f5',
+              callback: (value) => formatBRL(value),
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' },
+          },
+          x: {
+            ticks: { color: '#c8d7f5' },
+            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          },
+        },
+      }),
+    });
+  }
+
+  function formatMonthLabel(monthText) {
+    if (!monthText || typeof monthText !== 'string' || !monthText.includes('-')) {
+      return String(monthText || '');
+    }
+    const [year, month] = monthText.split('-').map(Number);
+    if (!year || !month) return monthText;
+    const date = new Date(year, month - 1, 1);
+    return date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
   }
 
   function chartOptions(extra = {}) {

@@ -205,6 +205,10 @@ a {
   box-shadow: var(--shadow-soft);
 }
 
+.chart-card.chart-wide {
+  grid-column: 1 / -1;
+}
+
 .chart-card h3 {
   margin: 0 0 14px;
   font-size: 1rem;
