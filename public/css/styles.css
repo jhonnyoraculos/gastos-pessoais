@@ -29,6 +29,7 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -49,6 +50,8 @@ a {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 250px 1fr;
+  width: 100%;
+  max-width: 100%;
 }
 
 .sidebar {
@@ -152,17 +155,20 @@ a {
   flex-wrap: wrap;
   gap: 10px;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .content-grid {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(160px, 1fr));
   gap: 14px;
+  min-width: 0;
 }
 
 .card {
@@ -171,17 +177,21 @@ a {
   background: linear-gradient(160deg, rgba(23, 41, 73, 0.9), rgba(16, 31, 58, 0.96));
   box-shadow: var(--shadow-soft);
   padding: 16px;
+  min-width: 0;
 }
 
 .metric-label {
   color: var(--text-muted);
   font-size: 0.82rem;
   margin-bottom: 10px;
+  line-height: 1.35;
 }
 
 .metric-value {
   font-size: 1.2rem;
   font-weight: 700;
+  line-height: 1.15;
+  word-break: break-word;
 }
 
 .metric-hint {
@@ -194,6 +204,7 @@ a {
   display: grid;
   grid-template-columns: repeat(2, minmax(280px, 1fr));
   gap: 14px;
+  min-width: 0;
 }
 
 .chart-card {
@@ -203,6 +214,7 @@ a {
   padding: 16px;
   min-height: 320px;
   box-shadow: var(--shadow-soft);
+  min-width: 0;
 }
 
 .chart-card.chart-wide {
@@ -568,7 +580,8 @@ textarea {
   }
 
   .cards-grid {
-    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
 
   .form-grid,
@@ -672,7 +685,7 @@ textarea {
   }
 
   .main {
-    padding: 14px 12px calc(96px + env(safe-area-inset-bottom));
+    padding: 12px 10px calc(96px + env(safe-area-inset-bottom));
   }
 
   .topbar {
@@ -692,13 +705,55 @@ textarea {
   .topbar-actions > * {
     width: 100%;
     flex: 1 1 100%;
+    min-width: 0;
   }
 
   .cards-grid {
-    grid-template-columns: repeat(2, minmax(130px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .card,
+  .panel,
+  .chart-card {
+    padding: 14px;
+  }
+
+  .metric-label {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+  }
+
+  .metric-value {
+    font-size: clamp(1.7rem, 6vw, 2.1rem);
   }
 
   .chart-wrap {
-    height: 220px;
+    height: 200px;
+  }
+}
+
+@media (max-width: 520px) {
+  .main {
+    padding: 12px 10px calc(92px + env(safe-area-inset-bottom));
+  }
+
+  .topbar h2 {
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  .topbar-subtitle {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
