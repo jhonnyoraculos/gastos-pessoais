@@ -146,6 +146,7 @@
 
     els.salaryTotal = document.getElementById('metricSalaryTotal');
     els.spendMonth = document.getElementById('metricSpendMonth');
+    els.cardSpendMonth = document.getElementById('metricCardSpendMonth');
     els.gainMonth = document.getElementById('metricGainMonth');
     els.salaryPercent = document.getElementById('metricSalaryPercent');
     els.estimatedLeft = document.getElementById('metricEstimatedLeft');
@@ -349,6 +350,7 @@
 
     els.salaryTotal.textContent = formatBRL(payload.salary_total || 0);
     els.spendMonth.textContent = formatBRL(totals.spend_month || 0);
+    els.cardSpendMonth.textContent = formatBRL(totals.card_spend_month || 0);
     els.gainMonth.textContent = formatBRL(totals.gain_month || 0);
     els.salaryPercent.textContent =
       totals.salary_spent_percent === null ? 'Configure seu salario' : formatPercent(totals.salary_spent_percent);
