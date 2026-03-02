@@ -35,6 +35,8 @@ body {
 body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
   color: var(--text-main);
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
   background:
     radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 35%),
     radial-gradient(circle at bottom right, rgba(14, 165, 233, 0.11), transparent 42%),
@@ -609,6 +611,8 @@ textarea {
 
   .table-expenses th:nth-child(3),
   .table-expenses td:nth-child(3),
+  .table-expenses th:nth-child(4),
+  .table-expenses td:nth-child(4),
   .table-expenses th:nth-child(5),
   .table-expenses td:nth-child(5),
   .table-expenses th:nth-child(7),
@@ -695,11 +699,13 @@ textarea {
     padding: 0;
     background: transparent;
     backdrop-filter: none;
+    margin-bottom: 12px;
   }
 
   .topbar-actions {
     width: 100%;
     justify-content: stretch;
+    gap: 8px;
   }
 
   .topbar-actions > * {
@@ -709,27 +715,82 @@ textarea {
   }
 
   .cards-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: 1fr;
+    gap: 9px;
   }
 
   .card,
   .panel,
   .chart-card {
-    padding: 14px;
+    padding: 12px;
+  }
+
+  .content-grid {
+    gap: 10px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .panel-header .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .panel-header .topbar-actions > * {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .panel-header .topbar-actions .btn {
+    justify-content: center;
   }
 
   .metric-label {
-    font-size: 0.9rem;
-    margin-bottom: 8px;
+    font-size: 0.86rem;
+    margin-bottom: 7px;
   }
 
   .metric-value {
-    font-size: clamp(1.7rem, 6vw, 2.1rem);
+    font-size: clamp(1.22rem, 5.3vw, 1.55rem);
   }
 
   .chart-wrap {
-    height: 200px;
+    height: 210px;
+  }
+
+  .chart-card {
+    min-height: 286px;
+  }
+
+  thead th {
+    padding: 10px 8px;
+    font-size: 0.76rem;
+  }
+
+  tbody td {
+    padding: 10px 8px;
+    font-size: 0.82rem;
+  }
+
+  .action-row {
+    gap: 6px;
+  }
+
+  .action-row .btn {
+    min-height: 38px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  .inline-group {
+    flex-direction: column;
   }
 }
 
@@ -748,12 +809,16 @@ textarea {
     line-height: 1.35;
   }
 
-  .cards-grid {
+  .panel-header .topbar-actions {
     grid-template-columns: 1fr;
   }
 
   .topbar-actions .btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .chart-wrap {
+    height: 195px;
   }
 }
