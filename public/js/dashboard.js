@@ -298,12 +298,7 @@
       const salaryTotal = Number(payload?.salary_total || 0);
 
       if (salaryTotal <= 0) {
-        const settings = await apiFetch('/api/settings');
-        els.onboardingNetSalary.value = '';
-        els.onboardingExtraIncome.value = Number(settings.extra_income || 0);
-        els.onboardingPayday.value = Number(settings.payday_day || 1);
-        els.onboardingBudget.value = Number(settings.monthly_budget || 0);
-        openModal('onboardingModal', { locked: true });
+        closeModal('onboardingModal', { force: true });
       } else {
         closeModal('onboardingModal', { force: true });
       }
