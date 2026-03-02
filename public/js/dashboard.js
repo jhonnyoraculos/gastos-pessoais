@@ -121,6 +121,7 @@
     categories: [],
     latest: [],
     charts: {},
+    assistantOpen: false,
   };
 
   const els = {};
@@ -172,6 +173,11 @@
     els.editType = document.getElementById('editType');
     els.editMethod = document.getElementById('editMethod');
     els.editNotes = document.getElementById('editNotes');
+
+    els.assistantFab = document.getElementById('assistantFab');
+    els.assistantPanel = document.getElementById('assistantPanel');
+    els.assistantClose = document.getElementById('assistantClose');
+    els.assistantContent = document.getElementById('assistantContent');
   }
 
   function bindEvents() {
@@ -260,6 +266,31 @@
         setLoading(false);
       }
     });
+
+    if (els.assistantFab && els.assistantPanel) {
+      els.assistantFab.addEventListener('click', () => {
+        setAssistantOpen(!state.assistantOpen);
+      });
+    }
+
+    if (els.assistantClose) {
+      els.assistantClose.addEventListener('click', () => {
+        setAssistantOpen(false);
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      if (!state.assistantOpen || !els.assistantPanel || !els.assistantFab) return;
+      const clickTarget = event.target;
+      if (els.assistantPanel.contains(clickTarget) || els.assistantFab.contains(clickTarget)) return;
+      setAssistantOpen(false);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && state.assistantOpen) {
+        setAssistantOpen(false);
+      }
+    });
   }
 
   async function loadCategories() {
@@ -327,6 +358,7 @@
 
       renderMetrics(payload);
       renderCharts(payload);
+      renderAssistant(payload);
       renderLatestTable(state.latest);
       els.lastRefresh.textContent = `Atualizado em ${new Date().toLocaleTimeString('pt-BR')}`;
       return payload;
@@ -714,6 +746,174 @@
         `
       )
       .join('');
+  }
+
+  function setAssistantOpen(nextOpen) {
+    state.assistantOpen = Boolean(nextOpen);
+    if (!els.assistantPanel || !els.assistantFab) return;
+
+    els.assistantPanel.classList.toggle('open', state.assistantOpen);
+    els.assistantPanel.setAttribute('aria-hidden', state.assistantOpen ? 'false' : 'true');
+    els.assistantFab.setAttribute('aria-expanded', state.assistantOpen ? 'true' : 'false');
+  }
+
+  function renderAssistant(payload) {
+    if (!els.assistantContent) return;
+    if (!payload) {
+      els.assistantContent.innerHTML = '<p class="assistant-muted">Sem dados para analise.</p>';
+      return;
+    }
+
+    const model = buildAssistantModel(payload);
+
+    const salaryHint =
+      model.salarySpentPercent === null
+        ? 'Sem salario mensal informado para calcular percentual.'
+        : `${formatPercent(model.salarySpentPercent)} do salario comprometido no mes.`;
+
+    const trendLabel =
+      model.forecastNext > model.spendMonth
+        ? 'Tendencia: alta de gasto'
+        : model.forecastNext < model.spendMonth
+        ? 'Tendencia: queda de gasto'
+        : 'Tendencia: estabilidade';
+
+    els.assistantContent.innerHTML = `
+      <article class="assistant-block">
+        <div class="assistant-label">Analise diaria</div>
+        <div class="assistant-value">${formatBRL(model.dailySpend)}</div>
+        <div class="assistant-hint">${model.dailyHint}</div>
+      </article>
+      <article class="assistant-block">
+        <div class="assistant-label">Analise semanal</div>
+        <div class="assistant-value">${formatBRL(model.weeklySpend)}</div>
+        <div class="assistant-hint">Ultimos 7 dias: media de ${formatBRL(model.weeklyAverage)} por dia.</div>
+      </article>
+      <article class="assistant-block">
+        <div class="assistant-label">Analise mensal</div>
+        <div class="assistant-value">${formatBRL(model.spendMonth)}</div>
+        <div class="assistant-hint">Media diaria no mes: ${formatBRL(model.dailyAverage)}. ${salaryHint}</div>
+      </article>
+      <article class="assistant-block">
+        <div class="assistant-label">Previsao para ${escapeHtml(model.nextMonthLabel)}</div>
+        <div class="assistant-value">${formatBRL(model.forecastNext)}</div>
+        <div class="assistant-hint">${trendLabel}. ${model.forecastHint}</div>
+      </article>
+    `;
+  }
+
+  function buildAssistantModel(payload) {
+    const selectedMonth = typeof payload.month === 'string' ? payload.month : state.month;
+    const totals = payload.totals || {};
+    const dailySeries = Array.isArray(payload.daily_series) ? payload.daily_series : [];
+    const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series : [];
+
+    const currentMonth = currentMonthISO();
+    const isCurrentMonth = selectedMonth === currentMonth;
+    const isFutureMonth = selectedMonth > currentMonth;
+    const daysInMonth = dailySeries.length || getDaysInMonthFromMonth(selectedMonth);
+    const daysElapsed = isFutureMonth ? 0 : isCurrentMonth ? Math.min(new Date().getDate(), daysInMonth) : daysInMonth;
+
+    const spendMonth = money(totals.spend_month || 0);
+    const spendToday = isCurrentMonth ? money(totals.spend_today || 0) : money(lastDaySpend(dailySeries));
+    const spendWeek = isCurrentMonth ? money(totals.spend_week || 0) : money(sumLastDays(dailySeries, 7, 'total_spend'));
+    const dailyAverage = daysElapsed > 0 ? money(spendMonth / daysElapsed) : 0;
+    const weeklyAverage = money(spendWeek / 7);
+
+    const trendValues = monthlySeries
+      .filter((item) => typeof item?.month === 'string' && item.month < selectedMonth)
+      .map((item) => Number(item.total_spend || 0))
+      .filter((value) => Number.isFinite(value) && value > 0)
+      .slice(-3);
+    const trendAverage = trendValues.length
+      ? money(trendValues.reduce((sum, value) => sum + value, 0) / trendValues.length)
+      : 0;
+
+    const nextMonth = getNextMonth(selectedMonth);
+    const nextMonthDays = getDaysInMonthFromMonth(nextMonth);
+    const runRate = daysElapsed > 0 ? spendMonth / daysElapsed : trendAverage > 0 ? trendAverage / Math.max(daysInMonth, 1) : 0;
+
+    let forecastNext = runRate > 0 ? runRate * nextMonthDays : 0;
+    if (trendAverage > 0 && forecastNext > 0) {
+      forecastNext = forecastNext * 0.65 + trendAverage * 0.35;
+    } else if (trendAverage > 0 && forecastNext <= 0) {
+      forecastNext = trendAverage;
+    }
+    forecastNext = money(forecastNext);
+
+    const dailyHint = isCurrentMonth
+      ? `Hoje: ${formatBRL(spendToday)}. Ritmo atual: ${formatBRL(dailyAverage)} por dia.`
+      : `Ultimo dia do mes: ${formatBRL(spendToday)}. Ritmo do mes: ${formatBRL(dailyAverage)} por dia.`;
+
+    const forecastHint =
+      daysElapsed > 0
+        ? `Se mantiver o ritmo atual (${formatBRL(dailyAverage)}/dia), esse e o gasto esperado.`
+        : 'Sem base diaria suficiente; previsao baseada no historico recente.';
+
+    return {
+      dailySpend: spendToday,
+      weeklySpend: spendWeek,
+      weeklyAverage,
+      spendMonth,
+      dailyAverage,
+      salarySpentPercent: totals.salary_spent_percent === null ? null : Number(totals.salary_spent_percent || 0),
+      forecastNext,
+      forecastHint,
+      dailyHint,
+      nextMonthLabel: formatMonthLong(nextMonth),
+    };
+  }
+
+  function lastDaySpend(series) {
+    if (!Array.isArray(series) || !series.length) return 0;
+    return Number(series[series.length - 1]?.total_spend || 0);
+  }
+
+  function sumLastDays(series, quantity, key) {
+    if (!Array.isArray(series) || !series.length) return 0;
+    return series
+      .slice(-quantity)
+      .reduce((sum, item) => sum + Number(item?.[key] || 0), 0);
+  }
+
+  function getDaysInMonthFromMonth(monthText) {
+    if (!monthText || typeof monthText !== 'string' || !monthText.includes('-')) {
+      return 30;
+    }
+    const [year, month] = monthText.split('-').map(Number);
+    if (!year || !month) return 30;
+    return new Date(year, month, 0).getDate();
+  }
+
+  function getNextMonth(monthText) {
+    if (!monthText || typeof monthText !== 'string' || !monthText.includes('-')) {
+      return currentMonthISO();
+    }
+    const [year, month] = monthText.split('-').map(Number);
+    if (!year || !month) return currentMonthISO();
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() + 1);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  function formatMonthLong(monthText) {
+    if (!monthText || typeof monthText !== 'string' || !monthText.includes('-')) {
+      return String(monthText || '');
+    }
+    const [year, month] = monthText.split('-').map(Number);
+    if (!year || !month) return monthText;
+    return new Date(year, month - 1, 1).toLocaleDateString('pt-BR', {
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+
+  function money(value) {
+    const number = Number(value || 0);
+    if (!Number.isFinite(number)) return 0;
+    return Math.round((number + Number.EPSILON) * 100) / 100;
   }
 
   function openEditModal(expenseId) {

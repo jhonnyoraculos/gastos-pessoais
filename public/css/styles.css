@@ -517,6 +517,93 @@ textarea {
   margin-top: 8px;
 }
 
+.assistant-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 55;
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  background: linear-gradient(140deg, #38bdf8, #22d3ee);
+  color: #041426;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(2, 8, 19, 0.45);
+}
+
+.assistant-panel {
+  position: fixed;
+  right: 18px;
+  bottom: 74px;
+  z-index: 56;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(68vh, 620px);
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 16px;
+  background: linear-gradient(155deg, rgba(16, 29, 55, 0.98), rgba(10, 20, 38, 0.98));
+  box-shadow: 0 24px 44px rgba(0, 0, 0, 0.42);
+  padding: 12px;
+  display: none;
+}
+
+.assistant-panel.open {
+  display: block;
+}
+
+.assistant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.assistant-header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #eef4ff;
+}
+
+.assistant-content {
+  display: grid;
+  gap: 10px;
+}
+
+.assistant-block {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 12px;
+  background: rgba(12, 24, 45, 0.72);
+  padding: 10px;
+}
+
+.assistant-label {
+  font-size: 0.8rem;
+  color: #8fb4e4;
+  margin-bottom: 4px;
+}
+
+.assistant-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f0f6ff;
+}
+
+.assistant-hint {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: #a7b9d9;
+  line-height: 1.35;
+}
+
+.assistant-muted {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.83rem;
+}
+
 @keyframes toast-in {
   from {
     transform: translateY(-8px);
@@ -769,6 +856,20 @@ textarea {
     min-height: 286px;
   }
 
+  .assistant-fab {
+    right: 10px;
+    bottom: calc(90px + env(safe-area-inset-bottom));
+    padding: 10px 14px;
+    font-size: 0.86rem;
+  }
+
+  .assistant-panel {
+    right: 10px;
+    bottom: calc(140px + env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    max-height: 58vh;
+  }
+
   thead th {
     padding: 10px 8px;
     font-size: 0.76rem;
@@ -820,5 +921,13 @@ textarea {
 
   .chart-wrap {
     height: 195px;
+  }
+
+  .assistant-header h3 {
+    font-size: 0.9rem;
+  }
+
+  .assistant-value {
+    font-size: 0.98rem;
   }
 }
