@@ -301,7 +301,7 @@ router.get('/', async (req, res, next) => {
       method: 'Cartão',
     });
 
-    const [spendMonthRes, cardSpendMonthRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
+    const [spendMonthRes, cardSpendMonthRes, creditCardPlannedRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -317,6 +317,14 @@ router.get('/', async (req, res, next) => {
           ${cardMonthFilters.whereClause}
         `,
         cardMonthFilters.params
+      ),
+      pool.query(
+        `
+          SELECT COALESCE(planned_amount, 0) AS planned_amount
+          FROM gp_credit_card_monthly
+          WHERE month = $1
+        `,
+        [month]
       ),
       pool.query(
         `
@@ -411,11 +419,14 @@ router.get('/', async (req, res, next) => {
 
     const spendMonth = toMoney(spendMonthRes.rows[0].total);
     const cardSpendMonth = toMoney(cardSpendMonthRes.rows[0].total);
+    const creditCardPlannedMonth = toMoney(creditCardPlannedRes.rows[0]?.planned_amount || 0);
+    const projectedSpendMonth = toMoney(spendMonth + creditCardPlannedMonth);
     const gainMonth = toMoney(gainMonthRes.rows[0].total);
     const reserveResgateMonth = toMoney(reserveMonthRes.rows[0].total_resgate);
     const reserveAporteMonth = toMoney(reserveMonthRes.rows[0].total_aporte);
     const reserveNetMonth = toMoney(reserveResgateMonth - reserveAporteMonth);
     const estimatedLeft = toMoney(carryoverBalance + salaryTotal - spendMonth);
+    const projectedEstimatedLeft = toMoney(carryoverBalance + salaryTotal - projectedSpendMonth);
     const realLeft = toMoney(carryoverBalance + salaryTotal + gainMonth + reserveNetMonth - spendMonth);
     const budgetLeft = monthlyBudget > 0 ? toMoney(monthlyBudget - spendMonth) : null;
     const salarySpentPercent = salaryTotal > 0 ? round1((spendMonth / salaryTotal) * 100) : null;
@@ -558,14 +569,17 @@ router.get('/', async (req, res, next) => {
         gain_today: gainToday,
         gain_week: gainWeek,
         spend_month: spendMonth,
+        projected_spend_month: projectedSpendMonth,
         gain_month: gainMonth,
         card_spend_month: cardSpendMonth,
+        credit_card_planned_month: creditCardPlannedMonth,
         carryover_balance: carryoverBalance,
         reserve_resgate_month: reserveResgateMonth,
         reserve_aporte_month: reserveAporteMonth,
         reserve_net_month: reserveNetMonth,
         salary_spent_percent: salarySpentPercent,
         estimated_left: estimatedLeft,
+        projected_estimated_left: projectedEstimatedLeft,
         real_left: realLeft,
         budget_left: budgetLeft,
       },

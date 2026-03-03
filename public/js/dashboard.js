@@ -147,6 +147,7 @@
 
     els.salaryTotal = document.getElementById('metricSalaryTotal');
     els.spendMonth = document.getElementById('metricSpendMonth');
+    els.projectedSpendMonth = document.getElementById('metricProjectedSpendMonth');
     els.cardSpendMonth = document.getElementById('metricCardSpendMonth');
     els.gainMonth = document.getElementById('metricGainMonth');
     els.salaryPercent = document.getElementById('metricSalaryPercent');
@@ -377,6 +378,7 @@
 
     els.salaryTotal.textContent = formatBRL(payload.salary_total || 0);
     els.spendMonth.textContent = formatBRL(totals.spend_month || 0);
+    els.projectedSpendMonth.textContent = formatBRL(totals.projected_spend_month || totals.spend_month || 0);
     els.cardSpendMonth.textContent = formatBRL(totals.card_spend_month || 0);
     els.gainMonth.textContent = formatBRL(totals.gain_month || 0);
     els.salaryPercent.textContent =
@@ -792,7 +794,7 @@
       <article class="assistant-block">
         <div class="assistant-label">Analise mensal</div>
         <div class="assistant-value">${formatBRL(model.spendMonth)}</div>
-        <div class="assistant-hint">Media diaria no mes: ${formatBRL(model.dailyAverage)}. ${salaryHint}</div>
+        <div class="assistant-hint">Real: ${formatBRL(model.spendMonthReal)} | Previsto: ${formatBRL(model.spendMonth)}. Media diaria: ${formatBRL(model.dailyAverage)}. ${salaryHint}</div>
       </article>
       <article class="assistant-block">
         <div class="assistant-label">Previsao para ${escapeHtml(model.nextMonthLabel)}</div>
@@ -814,7 +816,8 @@
     const daysInMonth = dailySeries.length || getDaysInMonthFromMonth(selectedMonth);
     const daysElapsed = isFutureMonth ? 0 : isCurrentMonth ? Math.min(new Date().getDate(), daysInMonth) : daysInMonth;
 
-    const spendMonth = money(totals.spend_month || 0);
+    const spendMonthReal = money(totals.spend_month || 0);
+    const spendMonth = money(totals.projected_spend_month || spendMonthReal);
     const spendToday = isCurrentMonth ? money(totals.spend_today || 0) : money(lastDaySpend(dailySeries));
     const spendWeek = isCurrentMonth ? money(totals.spend_week || 0) : money(sumLastDays(dailySeries, 7, 'total_spend'));
     const dailyAverage = daysElapsed > 0 ? money(spendMonth / daysElapsed) : 0;
@@ -855,6 +858,7 @@
       weeklySpend: spendWeek,
       weeklyAverage,
       spendMonth,
+      spendMonthReal,
       dailyAverage,
       salarySpentPercent: totals.salary_spent_percent === null ? null : Number(totals.salary_spent_percent || 0),
       forecastNext,

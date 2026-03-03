@@ -82,6 +82,31 @@
             <div id="monthlyIncomeHint" class="footer-note">Sem registro mensal para este mes.</div>
           </section>
 
+          <section class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Cartao de credito por mes (previsto)</h3>
+            </div>
+            <form id="creditCardForm" class="form-grid two-cols">
+              <div class="field">
+                <label for="creditCardMonth">Mes de referencia</label>
+                <input id="creditCardMonth" type="month" required />
+              </div>
+              <div class="field">
+                <label for="creditCardPlannedAmount">Valor previsto da fatura (R$)</label>
+                <input id="creditCardPlannedAmount" type="number" min="0" step="0.01" required />
+              </div>
+              <div class="field" style="grid-column: 1 / -1">
+                <label for="creditCardNotes">Observacoes</label>
+                <textarea id="creditCardNotes" maxlength="500" placeholder="Opcional"></textarea>
+              </div>
+              <div class="action-row" style="grid-column: 1 / -1">
+                <button type="button" id="deleteCreditCardBtn" class="btn btn-ghost">Remover mes</button>
+                <button type="submit" class="btn btn-primary">Salvar cartao previsto</button>
+              </div>
+            </form>
+            <div id="creditCardHint" class="footer-note">Sem previsao de cartao para este mes.</div>
+          </section>
+
           <section class="cards-grid">
             <article class="card">
               <div class="metric-label">Dia de pagamento</div>
@@ -99,6 +124,11 @@
               <div class="metric-label">Salario do mes selecionado</div>
               <div class="metric-value" id="summaryMonthlySalary">R$ 0,00</div>
               <div class="metric-hint" id="summaryMonthlySalaryMonth">-</div>
+            </article>
+            <article class="card">
+              <div class="metric-label">Cartao previsto do mes</div>
+              <div class="metric-value" id="summaryCreditCardMonth">R$ 0,00</div>
+              <div class="metric-hint" id="summaryCreditCardMonthLabel">-</div>
             </article>
           </section>
         </main>

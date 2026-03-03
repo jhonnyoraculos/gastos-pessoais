@@ -164,6 +164,37 @@ function validateMonthlyIncomePayload(payload, { partial = false } = {}) {
   return { errors, value };
 }
 
+function validateCreditCardMonthlyPayload(payload, { partial = false } = {}) {
+  const errors = [];
+  const value = {};
+
+  if (!payload || typeof payload !== 'object') {
+    return { errors: ['Payload invalido.'], value };
+  }
+
+  if ('planned_amount' in payload) {
+    const parsed = parseMoneyField(payload.planned_amount, 'planned_amount');
+    if (parsed.error) errors.push(parsed.error);
+    else value.planned_amount = parsed.value;
+  } else if (!partial) {
+    errors.push('planned_amount e obrigatorio.');
+  }
+
+  if ('notes' in payload) {
+    const parsed = parseOptionalString(payload.notes, { max: 500 });
+    if (parsed.error) errors.push(parsed.error);
+    else if (!parsed.absent) value.notes = parsed.value;
+  } else if (!partial) {
+    value.notes = null;
+  }
+
+  if (partial && Object.keys(value).length === 0) {
+    errors.push('Nenhum campo valido enviado para atualizar cartao mensal.');
+  }
+
+  return { errors, value };
+}
+
 function validateCategoryPayload(payload) {
   const errors = [];
   const value = {};
@@ -611,6 +642,7 @@ module.exports = {
   validateExpensesQuery,
   validateIncomePayload,
   validateIncomesQuery,
+  validateCreditCardMonthlyPayload,
   validateMonthlyIncomePayload,
   validateReservePayload,
   validateReservesQuery,

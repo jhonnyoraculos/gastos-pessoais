@@ -1,10 +1,12 @@
-﻿(() => {
+(() => {
   const { apiFetch, currentMonthISO, formatBRL, setLoading, toast } = window.UI;
 
   const state = {
     settings: null,
     selectedMonth: currentMonthISO(),
     monthlyIncome: null,
+    selectedCreditCardMonth: currentMonthISO(),
+    creditCardMonthly: null,
   };
 
   const els = {};
@@ -14,7 +16,10 @@
   async function init() {
     cacheElements();
     bindEvents();
+
     els.monthlyIncomeMonth.value = state.selectedMonth;
+    els.creditCardMonth.value = state.selectedCreditCardMonth;
+
     await loadInitialData();
   }
 
@@ -34,8 +39,17 @@
     els.monthlyIncomeHint = document.getElementById('monthlyIncomeHint');
     els.deleteMonthlyIncomeBtn = document.getElementById('deleteMonthlyIncomeBtn');
 
+    els.creditCardForm = document.getElementById('creditCardForm');
+    els.creditCardMonth = document.getElementById('creditCardMonth');
+    els.creditCardPlannedAmount = document.getElementById('creditCardPlannedAmount');
+    els.creditCardNotes = document.getElementById('creditCardNotes');
+    els.creditCardHint = document.getElementById('creditCardHint');
+    els.deleteCreditCardBtn = document.getElementById('deleteCreditCardBtn');
+
     els.summaryMonthlySalary = document.getElementById('summaryMonthlySalary');
     els.summaryMonthlySalaryMonth = document.getElementById('summaryMonthlySalaryMonth');
+    els.summaryCreditCardMonth = document.getElementById('summaryCreditCardMonth');
+    els.summaryCreditCardMonthLabel = document.getElementById('summaryCreditCardMonthLabel');
   }
 
   function bindEvents() {
@@ -45,7 +59,7 @@
       const payload = {
         payday_day: Number(els.paydayDay.value || 1),
         monthly_budget: Number(els.monthlyBudget.value || 0),
-        // Mantem o app 100% orientado a salario mensal por competencia.
+        // Mantem o app orientado a salario mensal por competencia.
         net_salary: 0,
         extra_income: 0,
       };
@@ -152,6 +166,87 @@
         setLoading(false);
       }
     });
+
+    els.creditCardMonth.addEventListener('change', async () => {
+      state.selectedCreditCardMonth = normalizeMonthValue(els.creditCardMonth.value);
+      els.creditCardMonth.value = state.selectedCreditCardMonth;
+      await loadCreditCardForSelectedMonth();
+    });
+
+    els.creditCardForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const month = normalizeMonthValue(els.creditCardMonth.value);
+      if (!month) {
+        toast('error', 'Informe um mes valido.');
+        return;
+      }
+
+      const payload = {
+        planned_amount: Number(els.creditCardPlannedAmount.value || 0),
+        notes: els.creditCardNotes.value || null,
+      };
+
+      if (!Number.isFinite(payload.planned_amount) || payload.planned_amount < 0) {
+        toast('error', 'Valor previsto do cartao invalido.');
+        return;
+      }
+
+      try {
+        setLoading(true, 'Salvando cartao previsto...');
+        const saved = await apiFetch(`/api/credit-card-monthly/${encodeURIComponent(month)}`, {
+          method: 'PUT',
+          body: payload,
+        });
+
+        state.selectedCreditCardMonth = month;
+        state.creditCardMonthly = {
+          ...saved,
+          exists: true,
+        };
+        renderCreditCardCard();
+        renderSummaryCards();
+        toast('success', 'Cartao mensal previsto salvo.');
+      } catch (error) {
+        toast('error', error.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    els.deleteCreditCardBtn.addEventListener('click', async () => {
+      const month = normalizeMonthValue(els.creditCardMonth.value);
+      if (!month) {
+        toast('error', 'Informe um mes valido.');
+        return;
+      }
+
+      if (!state.creditCardMonthly?.exists) {
+        toast('error', 'Nao existe previsao mensal de cartao para remover.');
+        return;
+      }
+
+      const confirmed = window.confirm(`Remover previsao de cartao de ${formatMonthLabel(month)}?`);
+      if (!confirmed) return;
+
+      try {
+        setLoading(true, 'Removendo cartao previsto...');
+        await apiFetch(`/api/credit-card-monthly/${encodeURIComponent(month)}`, { method: 'DELETE' });
+        state.creditCardMonthly = {
+          month,
+          planned_amount: 0,
+          notes: null,
+          updated_at: null,
+          exists: false,
+        };
+        renderCreditCardCard();
+        renderSummaryCards();
+        toast('success', 'Previsao mensal de cartao removida.');
+      } catch (error) {
+        toast('error', error.message);
+      } finally {
+        setLoading(false);
+      }
+    });
   }
 
   async function loadInitialData() {
@@ -159,7 +254,10 @@
       setLoading(true, 'Carregando configuracoes...');
       state.settings = await apiFetch('/api/settings');
       renderSettings();
-      await loadMonthlyIncomeForSelectedMonth({ withLoading: false });
+      await Promise.all([
+        loadMonthlyIncomeForSelectedMonth({ withLoading: false }),
+        loadCreditCardForSelectedMonth({ withLoading: false }),
+      ]);
     } catch (error) {
       toast('error', error.message);
     } finally {
@@ -180,6 +278,29 @@
 
       state.monthlyIncome = await apiFetch(`/api/monthly-income?month=${encodeURIComponent(month)}`);
       renderMonthlyIncomeCard();
+      renderSummaryCards();
+    } catch (error) {
+      toast('error', error.message);
+    } finally {
+      if (withLoading) {
+        setLoading(false);
+      }
+    }
+  }
+
+  async function loadCreditCardForSelectedMonth(options = {}) {
+    const { withLoading = true } = options;
+    const month = normalizeMonthValue(state.selectedCreditCardMonth);
+    state.selectedCreditCardMonth = month;
+    els.creditCardMonth.value = month;
+
+    try {
+      if (withLoading) {
+        setLoading(true, 'Carregando cartao mensal...');
+      }
+
+      state.creditCardMonthly = await apiFetch(`/api/credit-card-monthly?month=${encodeURIComponent(month)}`);
+      renderCreditCardCard();
       renderSummaryCards();
     } catch (error) {
       toast('error', error.message);
@@ -227,6 +348,26 @@
     els.deleteMonthlyIncomeBtn.disabled = !hasMonthly;
   }
 
+  function renderCreditCardCard() {
+    const cardMonthly = state.creditCardMonthly || {};
+    const hasCardMonthly = Boolean(cardMonthly.exists);
+    const monthLabel = formatMonthLabel(state.selectedCreditCardMonth);
+
+    if (hasCardMonthly) {
+      els.creditCardPlannedAmount.value = Number(cardMonthly.planned_amount || 0);
+      els.creditCardNotes.value = cardMonthly.notes || '';
+      els.creditCardHint.textContent = cardMonthly.updated_at
+        ? `Previsao de cartao ativa para ${monthLabel}. Atualizado em ${new Date(cardMonthly.updated_at).toLocaleString('pt-BR')}.`
+        : `Previsao de cartao ativa para ${monthLabel}.`;
+    } else {
+      els.creditCardPlannedAmount.value = 0;
+      els.creditCardNotes.value = '';
+      els.creditCardHint.textContent = `Sem previsao de cartao para ${monthLabel}.`;
+    }
+
+    els.deleteCreditCardBtn.disabled = !hasCardMonthly;
+  }
+
   function renderSummaryCards() {
     const settings = state.settings || {};
     const monthlyBudget = Number(settings.monthly_budget || 0);
@@ -234,10 +375,19 @@
     const monthlySalaryTotal = hasMonthly ? Number(state.monthlyIncome.salary_total || 0) : 0;
     const budgetLeft = monthlyBudget > 0 ? monthlySalaryTotal - monthlyBudget : monthlySalaryTotal;
 
+    const hasCardMonthly = Boolean(state.creditCardMonthly?.exists);
+    const cardPlannedAmount = hasCardMonthly ? Number(state.creditCardMonthly.planned_amount || 0) : 0;
+
     els.summaryMonthlySalary.textContent = formatBRL(monthlySalaryTotal);
     els.summaryMonthlySalaryMonth.textContent = hasMonthly
       ? `${formatMonthLabel(state.selectedMonth)} (registro mensal)`
       : `${formatMonthLabel(state.selectedMonth)} (sem registro)`;
+
+    els.summaryCreditCardMonth.textContent = formatBRL(cardPlannedAmount);
+    els.summaryCreditCardMonthLabel.textContent = hasCardMonthly
+      ? `${formatMonthLabel(state.selectedCreditCardMonth)} (previsao ativa)`
+      : `${formatMonthLabel(state.selectedCreditCardMonth)} (sem previsao)`;
+
     els.summaryLeft.textContent = formatBRL(budgetLeft);
   }
 
