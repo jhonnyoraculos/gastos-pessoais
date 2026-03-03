@@ -42,6 +42,7 @@
     els.creditCardForm = document.getElementById('creditCardForm');
     els.creditCardMonth = document.getElementById('creditCardMonth');
     els.creditCardPlannedAmount = document.getElementById('creditCardPlannedAmount');
+    els.creditCardInstallments = document.getElementById('creditCardInstallments');
     els.creditCardNotes = document.getElementById('creditCardNotes');
     els.creditCardHint = document.getElementById('creditCardHint');
     els.deleteCreditCardBtn = document.getElementById('deleteCreditCardBtn');
@@ -183,11 +184,17 @@
 
       const payload = {
         planned_amount: Number(els.creditCardPlannedAmount.value || 0),
+        installments: Number(els.creditCardInstallments.value || 1),
         notes: els.creditCardNotes.value || null,
       };
 
-      if (!Number.isFinite(payload.planned_amount) || payload.planned_amount < 0) {
+      if (!Number.isFinite(payload.planned_amount) || payload.planned_amount <= 0) {
         toast('error', 'Valor previsto do cartao invalido.');
+        return;
+      }
+
+      if (!Number.isInteger(payload.installments) || payload.installments < 1 || payload.installments > 36) {
+        toast('error', 'Parcelas devem ser entre 1 e 36.');
         return;
       }
 
@@ -205,7 +212,10 @@
         };
         renderCreditCardCard();
         renderSummaryCards();
-        toast('success', 'Cartao mensal previsto salvo.');
+        els.creditCardPlannedAmount.value = '';
+        els.creditCardInstallments.value = 1;
+        els.creditCardNotes.value = '';
+        toast('success', `Compra adicionada em ${payload.installments}x.`);
       } catch (error) {
         toast('error', error.message);
       } finally {
@@ -354,13 +364,12 @@
     const monthLabel = formatMonthLabel(state.selectedCreditCardMonth);
 
     if (hasCardMonthly) {
-      els.creditCardPlannedAmount.value = Number(cardMonthly.planned_amount || 0);
-      els.creditCardNotes.value = cardMonthly.notes || '';
       els.creditCardHint.textContent = cardMonthly.updated_at
-        ? `Previsao de cartao ativa para ${monthLabel}. Atualizado em ${new Date(cardMonthly.updated_at).toLocaleString('pt-BR')}.`
-        : `Previsao de cartao ativa para ${monthLabel}.`;
+        ? `Total previsto acumulado em ${monthLabel}: ${formatBRL(cardMonthly.planned_amount || 0)}. Atualizado em ${new Date(cardMonthly.updated_at).toLocaleString('pt-BR')}.`
+        : `Total previsto acumulado em ${monthLabel}: ${formatBRL(cardMonthly.planned_amount || 0)}.`;
     } else {
-      els.creditCardPlannedAmount.value = 0;
+      els.creditCardPlannedAmount.value = '';
+      els.creditCardInstallments.value = 1;
       els.creditCardNotes.value = '';
       els.creditCardHint.textContent = `Sem previsao de cartao para ${monthLabel}.`;
     }

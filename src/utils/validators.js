@@ -173,11 +173,22 @@ function validateCreditCardMonthlyPayload(payload, { partial = false } = {}) {
   }
 
   if ('planned_amount' in payload) {
-    const parsed = parseMoneyField(payload.planned_amount, 'planned_amount');
+    const parsed = parseMoneyField(payload.planned_amount, 'planned_amount', { min: 0, allowZero: false });
     if (parsed.error) errors.push(parsed.error);
     else value.planned_amount = parsed.value;
   } else if (!partial) {
     errors.push('planned_amount e obrigatorio.');
+  }
+
+  if ('installments' in payload) {
+    const installments = Number(payload.installments);
+    if (!Number.isInteger(installments) || installments < 1 || installments > 36) {
+      errors.push('installments deve ser um inteiro entre 1 e 36.');
+    } else {
+      value.installments = installments;
+    }
+  } else if (!partial) {
+    value.installments = 1;
   }
 
   if ('notes' in payload) {
