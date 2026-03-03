@@ -7,6 +7,8 @@
     monthlyIncome: null,
     selectedCreditCardMonth: currentMonthISO(),
     creditCardMonthly: null,
+    creditCardPurchases: [],
+    editingCreditCardPurchaseId: null,
   };
 
   const els = {};
@@ -46,6 +48,9 @@
     els.creditCardNotes = document.getElementById('creditCardNotes');
     els.creditCardHint = document.getElementById('creditCardHint');
     els.deleteCreditCardBtn = document.getElementById('deleteCreditCardBtn');
+    els.cancelCreditCardEditBtn = document.getElementById('cancelCreditCardEditBtn');
+    els.saveCreditCardBtn = document.getElementById('saveCreditCardBtn');
+    els.creditCardPurchasesBody = document.getElementById('creditCardPurchasesBody');
 
     els.summaryMonthlySalary = document.getElementById('summaryMonthlySalary');
     els.summaryMonthlySalaryMonth = document.getElementById('summaryMonthlySalaryMonth');
@@ -60,7 +65,6 @@
       const payload = {
         payday_day: Number(els.paydayDay.value || 1),
         monthly_budget: Number(els.monthlyBudget.value || 0),
-        // Mantem o app orientado a salario mensal por competencia.
         net_salary: 0,
         extra_income: 0,
       };
@@ -171,56 +175,13 @@
     els.creditCardMonth.addEventListener('change', async () => {
       state.selectedCreditCardMonth = normalizeMonthValue(els.creditCardMonth.value);
       els.creditCardMonth.value = state.selectedCreditCardMonth;
+      resetCreditCardEditMode();
       await loadCreditCardForSelectedMonth();
     });
 
     els.creditCardForm.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const month = normalizeMonthValue(els.creditCardMonth.value);
-      if (!month) {
-        toast('error', 'Informe um mes valido.');
-        return;
-      }
-
-      const payload = {
-        planned_amount: Number(els.creditCardPlannedAmount.value || 0),
-        installments: Number(els.creditCardInstallments.value || 1),
-        notes: els.creditCardNotes.value || null,
-      };
-
-      if (!Number.isFinite(payload.planned_amount) || payload.planned_amount <= 0) {
-        toast('error', 'Valor previsto do cartao invalido.');
-        return;
-      }
-
-      if (!Number.isInteger(payload.installments) || payload.installments < 1 || payload.installments > 36) {
-        toast('error', 'Parcelas devem ser entre 1 e 36.');
-        return;
-      }
-
-      try {
-        setLoading(true, 'Salvando cartao previsto...');
-        const saved = await apiFetch(`/api/credit-card-monthly/${encodeURIComponent(month)}`, {
-          method: 'PUT',
-          body: payload,
-        });
-
-        state.selectedCreditCardMonth = month;
-        state.creditCardMonthly = {
-          ...saved,
-          exists: true,
-        };
-        renderCreditCardCard();
-        renderSummaryCards();
-        els.creditCardPlannedAmount.value = '';
-        els.creditCardInstallments.value = 1;
-        els.creditCardNotes.value = '';
-        toast('success', `Compra adicionada em ${payload.installments}x.`);
-      } catch (error) {
-        toast('error', error.message);
-      } finally {
-        setLoading(false);
-      }
+      await saveCreditCardPurchase();
     });
 
     els.deleteCreditCardBtn.addEventListener('click', async () => {
@@ -235,28 +196,108 @@
         return;
       }
 
-      const confirmed = window.confirm(`Remover previsao de cartao de ${formatMonthLabel(month)}?`);
+      const confirmed = window.confirm(
+        `Remover compras iniciadas em ${formatMonthLabel(month)} e ajustes manuais deste mes?`
+      );
       if (!confirmed) return;
 
       try {
-        setLoading(true, 'Removendo cartao previsto...');
+        setLoading(true, 'Removendo cartao do mes...');
         await apiFetch(`/api/credit-card-monthly/${encodeURIComponent(month)}`, { method: 'DELETE' });
-        state.creditCardMonthly = {
-          month,
-          planned_amount: 0,
-          notes: null,
-          updated_at: null,
-          exists: false,
-        };
-        renderCreditCardCard();
-        renderSummaryCards();
-        toast('success', 'Previsao mensal de cartao removida.');
+        resetCreditCardEditMode();
+        await loadCreditCardForSelectedMonth({ withLoading: false });
+        toast('success', 'Registros de cartao do mes removidos.');
       } catch (error) {
         toast('error', error.message);
       } finally {
         setLoading(false);
       }
     });
+
+    els.cancelCreditCardEditBtn.addEventListener('click', () => {
+      resetCreditCardEditMode();
+    });
+
+    els.creditCardPurchasesBody.addEventListener('click', async (event) => {
+      const target = event.target.closest('button[data-action]');
+      if (!target) return;
+      const id = Number(target.dataset.id);
+      if (!Number.isInteger(id) || id <= 0) return;
+
+      if (target.dataset.action === 'edit') {
+        startEditCreditCardPurchase(id);
+        return;
+      }
+
+      if (target.dataset.action === 'delete') {
+        const confirmed = window.confirm('Excluir esta compra de cartao?');
+        if (!confirmed) return;
+
+        try {
+          setLoading(true, 'Excluindo compra de cartao...');
+          await apiFetch(`/api/credit-card-purchases/${id}`, { method: 'DELETE' });
+          if (state.editingCreditCardPurchaseId === id) {
+            resetCreditCardEditMode();
+          }
+          await loadCreditCardForSelectedMonth({ withLoading: false });
+          toast('success', 'Compra de cartao excluida.');
+        } catch (error) {
+          toast('error', error.message);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  }
+
+  async function saveCreditCardPurchase() {
+    const month = normalizeMonthValue(els.creditCardMonth.value);
+    if (!month) {
+      toast('error', 'Informe um mes valido.');
+      return;
+    }
+
+    const payload = {
+      start_month: month,
+      total_amount: Number(els.creditCardPlannedAmount.value || 0),
+      installments: Number(els.creditCardInstallments.value || 1),
+      notes: els.creditCardNotes.value || null,
+    };
+
+    if (!Number.isFinite(payload.total_amount) || payload.total_amount <= 0) {
+      toast('error', 'Valor da compra invalido.');
+      return;
+    }
+
+    if (!Number.isInteger(payload.installments) || payload.installments < 1 || payload.installments > 36) {
+      toast('error', 'Parcelas devem ser entre 1 e 36.');
+      return;
+    }
+
+    try {
+      const isEditing = Number.isInteger(state.editingCreditCardPurchaseId) && state.editingCreditCardPurchaseId > 0;
+      setLoading(true, isEditing ? 'Atualizando compra...' : 'Adicionando compra parcelada...');
+
+      if (isEditing) {
+        await apiFetch(`/api/credit-card-purchases/${state.editingCreditCardPurchaseId}`, {
+          method: 'PUT',
+          body: payload,
+        });
+      } else {
+        await apiFetch('/api/credit-card-purchases', {
+          method: 'POST',
+          body: payload,
+        });
+      }
+
+      resetCreditCardEditMode();
+      await loadCreditCardForSelectedMonth({ withLoading: false });
+      toast('success', isEditing ? 'Compra de cartao atualizada.' : `Compra adicionada em ${payload.installments}x.`);
+    } catch (error) {
+      toast('error', error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function loadInitialData() {
@@ -309,8 +350,15 @@
         setLoading(true, 'Carregando cartao mensal...');
       }
 
-      state.creditCardMonthly = await apiFetch(`/api/credit-card-monthly?month=${encodeURIComponent(month)}`);
+      const [monthly, purchases] = await Promise.all([
+        apiFetch(`/api/credit-card-monthly?month=${encodeURIComponent(month)}`),
+        apiFetch(`/api/credit-card-purchases?month=${encodeURIComponent(month)}`),
+      ]);
+
+      state.creditCardMonthly = monthly;
+      state.creditCardPurchases = purchases.items || [];
       renderCreditCardCard();
+      renderCreditCardPurchases();
       renderSummaryCards();
     } catch (error) {
       toast('error', error.message);
@@ -364,17 +412,68 @@
     const monthLabel = formatMonthLabel(state.selectedCreditCardMonth);
 
     if (hasCardMonthly) {
+      const manual = Number(cardMonthly.manual_amount || 0);
+      const purchases = Number(cardMonthly.purchases_amount || 0);
       els.creditCardHint.textContent = cardMonthly.updated_at
-        ? `Total previsto acumulado em ${monthLabel}: ${formatBRL(cardMonthly.planned_amount || 0)}. Atualizado em ${new Date(cardMonthly.updated_at).toLocaleString('pt-BR')}.`
-        : `Total previsto acumulado em ${monthLabel}: ${formatBRL(cardMonthly.planned_amount || 0)}.`;
+        ? `Total previsto em ${monthLabel}: ${formatBRL(cardMonthly.planned_amount || 0)} (compras: ${formatBRL(purchases)}, ajuste manual legado: ${formatBRL(manual)}). Atualizado em ${new Date(cardMonthly.updated_at).toLocaleString('pt-BR')}.`
+        : `Total previsto em ${monthLabel}: ${formatBRL(cardMonthly.planned_amount || 0)}.`;
     } else {
-      els.creditCardPlannedAmount.value = '';
-      els.creditCardInstallments.value = 1;
-      els.creditCardNotes.value = '';
       els.creditCardHint.textContent = `Sem previsao de cartao para ${monthLabel}.`;
     }
 
-    els.deleteCreditCardBtn.disabled = !hasCardMonthly;
+    els.deleteCreditCardBtn.disabled = !hasCardMonthly && state.creditCardPurchases.length === 0;
+  }
+
+  function renderCreditCardPurchases() {
+    if (!state.creditCardPurchases.length) {
+      els.creditCardPurchasesBody.innerHTML =
+        '<tr><td class="empty-row" colspan="6">Nenhuma compra de cartao neste mes.</td></tr>';
+      return;
+    }
+
+    els.creditCardPurchasesBody.innerHTML = state.creditCardPurchases
+      .map(
+        (item) => `
+          <tr>
+            <td>${escapeHtml(formatMonthLabel(item.start_month))}</td>
+            <td>${formatBRL(item.total_amount)}</td>
+            <td>${item.installments}x</td>
+            <td>${formatBRL(item.amount_in_month)}</td>
+            <td>${escapeHtml(item.notes || '-')}</td>
+            <td class="action-row">
+              <button class="btn btn-secondary" data-action="edit" data-id="${item.id}">Editar</button>
+              <button class="btn btn-danger" data-action="delete" data-id="${item.id}">Excluir</button>
+            </td>
+          </tr>
+        `
+      )
+      .join('');
+  }
+
+  function startEditCreditCardPurchase(id) {
+    const purchase = state.creditCardPurchases.find((item) => item.id === id);
+    if (!purchase) {
+      toast('error', 'Compra nao encontrada.');
+      return;
+    }
+
+    state.editingCreditCardPurchaseId = id;
+    els.creditCardMonth.value = purchase.start_month;
+    state.selectedCreditCardMonth = purchase.start_month;
+    els.creditCardPlannedAmount.value = Number(purchase.total_amount || 0);
+    els.creditCardInstallments.value = Number(purchase.installments || 1);
+    els.creditCardNotes.value = purchase.notes || '';
+    els.saveCreditCardBtn.textContent = 'Salvar edicao';
+    els.cancelCreditCardEditBtn.style.display = 'inline-flex';
+  }
+
+  function resetCreditCardEditMode() {
+    state.editingCreditCardPurchaseId = null;
+    els.creditCardPlannedAmount.value = '';
+    els.creditCardInstallments.value = 1;
+    els.creditCardNotes.value = '';
+    els.saveCreditCardBtn.textContent = 'Adicionar compra parcelada';
+    els.cancelCreditCardEditBtn.style.display = 'none';
   }
 
   function renderSummaryCards() {
@@ -415,5 +514,14 @@
       month: 'long',
       year: 'numeric',
     });
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 })();

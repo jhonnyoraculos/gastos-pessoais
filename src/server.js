@@ -12,6 +12,7 @@ const categoriesRoutes = require('./routes/categories');
 const settingsRoutes = require('./routes/settings');
 const monthlyIncomeRoutes = require('./routes/monthlyIncome');
 const creditCardMonthlyRoutes = require('./routes/creditCardMonthly');
+const creditCardPurchasesRoutes = require('./routes/creditCardPurchases');
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -53,6 +54,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/settings', settingsRoutes);
 app.use('/api/monthly-income', monthlyIncomeRoutes);
 app.use('/api/credit-card-monthly', creditCardMonthlyRoutes);
+app.use('/api/credit-card-purchases', creditCardPurchasesRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/incomes', incomesRoutes);

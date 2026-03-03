@@ -104,11 +104,33 @@
                 <textarea id="creditCardNotes" maxlength="500" placeholder="Opcional"></textarea>
               </div>
               <div class="action-row" style="grid-column: 1 / -1">
+                <button type="button" id="cancelCreditCardEditBtn" class="btn btn-ghost" style="display: none">
+                  Cancelar edicao
+                </button>
                 <button type="button" id="deleteCreditCardBtn" class="btn btn-ghost">Remover mes</button>
-                <button type="submit" class="btn btn-primary">Adicionar compra parcelada</button>
+                <button type="submit" id="saveCreditCardBtn" class="btn btn-primary">Adicionar compra parcelada</button>
               </div>
             </form>
             <div id="creditCardHint" class="footer-note">Sem previsao de cartao para este mes.</div>
+            <div class="table-wrap" style="margin-top: 12px">
+              <table class="table-credit-card">
+                <thead>
+                  <tr>
+                    <th>Inicio</th>
+                    <th>Total compra</th>
+                    <th>Parcelas</th>
+                    <th>Parcela no mes</th>
+                    <th>Obs</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="creditCardPurchasesBody">
+                  <tr>
+                    <td class="empty-row" colspan="6">Carregando...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </section>
 
           <section class="cards-grid">

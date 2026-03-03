@@ -320,9 +320,10 @@ router.get('/', async (req, res, next) => {
       ),
       pool.query(
         `
-          SELECT COALESCE(planned_amount, 0) AS planned_amount
-          FROM gp_credit_card_monthly
-          WHERE month = $1
+          SELECT
+            COALESCE((SELECT planned_amount FROM gp_credit_card_monthly WHERE month = $1), 0)
+            + COALESCE((SELECT SUM(amount) FROM gp_credit_card_purchase_allocations WHERE month = $1), 0)
+            AS planned_amount
         `,
         [month]
       ),

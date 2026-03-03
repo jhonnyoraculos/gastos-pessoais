@@ -721,6 +721,11 @@ textarea {
     display: none;
   }
 
+  .table-credit-card th:nth-child(5),
+  .table-credit-card td:nth-child(5) {
+    display: none;
+  }
+
   .modal {
     padding: 0;
   }
