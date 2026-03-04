@@ -147,7 +147,6 @@
 
     els.salaryTotal = document.getElementById('metricSalaryTotal');
     els.spendMonth = document.getElementById('metricSpendMonth');
-    els.projectedSpendMonth = document.getElementById('metricProjectedSpendMonth');
     els.cardSpendMonth = document.getElementById('metricCardSpendMonth');
     els.gainMonth = document.getElementById('metricGainMonth');
     els.salaryPercent = document.getElementById('metricSalaryPercent');
@@ -378,7 +377,6 @@
 
     els.salaryTotal.textContent = formatBRL(payload.salary_total || 0);
     els.spendMonth.textContent = formatBRL(totals.spend_month || 0);
-    els.projectedSpendMonth.textContent = formatBRL(totals.projected_spend_month || totals.spend_month || 0);
     els.cardSpendMonth.textContent = formatBRL(totals.card_spend_month || 0);
     els.gainMonth.textContent = formatBRL(totals.gain_month || 0);
     els.salaryPercent.textContent =
@@ -430,6 +428,18 @@
     const categoryValues = categoryEntries.length ? categoryEntries.map((item) => item.value) : [1];
     const categoryColors = categoryEntries.length
       ? categoryEntries.map((item) => item.color)
+      : ['rgba(148, 163, 184, 0.5)'];
+
+    const methodPalette = ['#38bdf8', '#f97316', '#22c55e', '#a78bfa'];
+    const methodEntries = (payload.by_method || []).map((item, index) => ({
+      label: item.method,
+      value: Number(item.total_spend || 0),
+      color: methodPalette[index % methodPalette.length],
+    }));
+    const methodLabels = methodEntries.length ? methodEntries.map((item) => item.label) : ['Sem dados'];
+    const methodValues = methodEntries.length ? methodEntries.map((item) => item.value) : [0];
+    const methodColors = methodEntries.length
+      ? methodEntries.map((item) => item.color)
       : ['rgba(148, 163, 184, 0.5)'];
 
     const dailyLabels = payload.daily_series.map((item) => String(item.day).padStart(2, '0'));
@@ -583,6 +593,37 @@
       },
       options: chartOptions({
         plugins: { legend: buildPieLegendWithValues({ position: pieLegendPosition() }) },
+      }),
+    });
+
+    renderOrReplaceChart('methodChart', document.getElementById('chartMethod'), {
+      type: 'bar',
+      data: {
+        labels: methodLabels,
+        datasets: [
+          {
+            label: 'Gasto por método',
+            data: methodValues,
+            backgroundColor: methodColors,
+            borderRadius: 6,
+          },
+        ],
+      },
+      options: chartOptions({
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#c8d7f5',
+              callback: (value) => formatBRL(value),
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' },
+          },
+          x: {
+            ticks: { color: '#c8d7f5' },
+            grid: { display: false },
+          },
+        },
       }),
     });
 
@@ -826,32 +867,70 @@
     const trendValues = monthlySeries
       .filter((item) => typeof item?.month === 'string' && item.month < selectedMonth)
       .map((item) => Number(item.total_spend || 0))
-      .filter((value) => Number.isFinite(value) && value > 0)
-      .slice(-3);
-    const trendAverage = trendValues.length
-      ? money(trendValues.reduce((sum, value) => sum + value, 0) / trendValues.length)
+      .filter((value) => Number.isFinite(value) && value >= 0)
+      .slice(-4);
+
+    const trendNonZero = trendValues.filter((value) => value > 0);
+    const trendAverage = trendNonZero.length
+      ? money(trendNonZero.reduce((sum, value) => sum + value, 0) / trendNonZero.length)
       : 0;
 
-    const nextMonth = getNextMonth(selectedMonth);
-    const nextMonthDays = getDaysInMonthFromMonth(nextMonth);
-    const runRate = daysElapsed > 0 ? spendMonth / daysElapsed : trendAverage > 0 ? trendAverage / Math.max(daysInMonth, 1) : 0;
+    const trendMedian = trendNonZero.length
+      ? money(
+          trendNonZero
+            .slice()
+            .sort((a, b) => a - b)[Math.floor((trendNonZero.length - 1) / 2)]
+        )
+      : 0;
 
-    let forecastNext = runRate > 0 ? runRate * nextMonthDays : 0;
-    if (trendAverage > 0 && forecastNext > 0) {
-      forecastNext = forecastNext * 0.65 + trendAverage * 0.35;
-    } else if (trendAverage > 0 && forecastNext <= 0) {
-      forecastNext = trendAverage;
+    const historyBaseline = trendMedian > 0 ? trendMedian : trendAverage;
+    const progress = daysInMonth > 0 ? daysElapsed / daysInMonth : 0;
+    const currentProjection = daysElapsed > 0 ? money((spendMonthReal / daysElapsed) * daysInMonth) : 0;
+
+    const trendRatioRaw =
+      trendNonZero.length >= 2
+        ? trendNonZero[trendNonZero.length - 1] / Math.max(trendNonZero[trendNonZero.length - 2], 1)
+        : 1;
+    const trendRatio = clamp(trendRatioRaw, 0.85, 1.2);
+
+    let baseForecast = 0;
+    if (isFutureMonth) {
+      baseForecast = historyBaseline > 0 ? historyBaseline : spendMonthReal;
+    } else if (!isCurrentMonth) {
+      baseForecast = spendMonthReal;
+    } else if (daysElapsed <= 7) {
+      baseForecast = historyBaseline > 0 ? historyBaseline : currentProjection;
+    } else {
+      const weightCurrent = clamp(progress, 0.25, 0.75);
+      baseForecast = historyBaseline > 0
+        ? money(currentProjection * weightCurrent + historyBaseline * (1 - weightCurrent))
+        : currentProjection;
     }
-    forecastNext = money(forecastNext);
+
+    let forecastNext = baseForecast;
+    if (historyBaseline > 0 && forecastNext > 0) {
+      forecastNext = money(forecastNext * 0.75 + historyBaseline * 0.25);
+    }
+    if (forecastNext > 0) {
+      forecastNext = money(forecastNext * (0.65 + 0.35 * trendRatio));
+    }
+    if (historyBaseline > 0 && forecastNext > 0) {
+      const maxFactor = isCurrentMonth && progress < 0.35 ? 1.35 : 1.7;
+      forecastNext = clamp(forecastNext, historyBaseline * 0.6, historyBaseline * maxFactor);
+      forecastNext = money(forecastNext);
+    }
+
+    const nextMonth = getNextMonth(selectedMonth);
 
     const dailyHint = isCurrentMonth
       ? `Hoje: ${formatBRL(spendToday)}. Ritmo atual: ${formatBRL(dailyAverage)} por dia.`
       : `Ultimo dia do mes: ${formatBRL(spendToday)}. Ritmo do mes: ${formatBRL(dailyAverage)} por dia.`;
 
-    const forecastHint =
-      daysElapsed > 0
-        ? `Se mantiver o ritmo atual (${formatBRL(dailyAverage)}/dia), esse e o gasto esperado.`
-        : 'Sem base diaria suficiente; previsao baseada no historico recente.';
+    const forecastHint = historyBaseline > 0
+      ? `Base historica: ${formatBRL(historyBaseline)}. Ritmo projetado do mes atual: ${formatBRL(currentProjection)}.`
+      : daysElapsed > 0
+      ? `Sem historico suficiente; base no ritmo atual (${formatBRL(dailyAverage)}/dia).`
+      : 'Sem base diaria suficiente; previsao baseada no historico recente.';
 
     return {
       dailySpend: spendToday,
@@ -918,6 +997,11 @@
     const number = Number(value || 0);
     if (!Number.isFinite(number)) return 0;
     return Math.round((number + Number.EPSILON) * 100) / 100;
+  }
+
+  function clamp(value, min, max) {
+    if (!Number.isFinite(Number(value))) return min;
+    return Math.min(Math.max(Number(value), min), max);
   }
 
   function openEditModal(expenseId) {

@@ -212,6 +212,85 @@ router.put('/:month', async (req, res, next) => {
   }
 });
 
+router.put('/manual/:month', async (req, res, next) => {
+  try {
+    const month = parseMonth(String(req.params.month || ''));
+    if (!month) {
+      return res.status(400).json({ error: 'month deve estar no formato YYYY-MM.' });
+    }
+
+    const plannedAmount = Number(req.body?.planned_amount);
+    if (!Number.isFinite(plannedAmount) || plannedAmount < 0) {
+      return res.status(400).json({ error: 'planned_amount deve ser numerico e >= 0.' });
+    }
+
+    let notes = null;
+    if (req.body?.notes !== undefined && req.body?.notes !== null) {
+      if (typeof req.body.notes !== 'string') {
+        return res.status(400).json({ error: 'notes precisa ser texto.' });
+      }
+      const trimmed = req.body.notes.trim();
+      if (trimmed.length > 500) {
+        return res.status(400).json({ error: 'notes nao pode exceder 500 caracteres.' });
+      }
+      notes = trimmed || null;
+    }
+
+    const amount = toMoney(plannedAmount);
+    if (amount === 0 && !notes) {
+      await pool.query('DELETE FROM gp_credit_card_monthly WHERE month = $1', [month]);
+    } else {
+      await pool.query(
+        `
+          INSERT INTO gp_credit_card_monthly (month, planned_amount, notes)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (month)
+          DO UPDATE
+            SET planned_amount = EXCLUDED.planned_amount,
+                notes = EXCLUDED.notes,
+                updated_at = now()
+        `,
+        [month, amount, notes]
+      );
+    }
+
+    const summaryRow = await getMonthSummary(pool, month);
+    return res.json({
+      ...formatSummaryRow(summaryRow),
+      manual_updated: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/manual/:month', async (req, res, next) => {
+  try {
+    const month = parseMonth(String(req.params.month || ''));
+    if (!month) {
+      return res.status(400).json({ error: 'month deve estar no formato YYYY-MM.' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM gp_credit_card_monthly WHERE month = $1',
+      [month]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Ajuste manual de cartao nao encontrado para este mes.' });
+    }
+
+    const summaryRow = await getMonthSummary(pool, month);
+    return res.json({
+      ok: true,
+      month,
+      summary: formatSummaryRow(summaryRow),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.delete('/:month', async (req, res, next) => {
   try {
     const month = parseMonth(String(req.params.month || ''));

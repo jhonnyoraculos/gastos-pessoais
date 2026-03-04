@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../db/pool');
 const {
   EXPENSE_TYPES,
+  PAYMENT_METHODS,
   getCurrentMonth,
   getMonthRange,
   parseMonth,
@@ -293,15 +294,7 @@ router.get('/', async (req, res, next) => {
       category: category || null,
     });
 
-    const cardMonthFilters = buildFilterClause({
-      start: monthRange.start,
-      end: monthRange.end,
-      type: type || null,
-      category: category || null,
-      method: 'Cartão',
-    });
-
-    const [spendMonthRes, cardSpendMonthRes, creditCardPlannedRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
+    const [spendMonthRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, byMethodRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -309,23 +302,6 @@ router.get('/', async (req, res, next) => {
           ${monthFilters.whereClause}
         `,
         monthFilters.params
-      ),
-      pool.query(
-        `
-          SELECT COALESCE(SUM(e.amount), 0) AS total
-          ${baseFrom}
-          ${cardMonthFilters.whereClause}
-        `,
-        cardMonthFilters.params
-      ),
-      pool.query(
-        `
-          SELECT
-            COALESCE((SELECT planned_amount FROM gp_credit_card_monthly WHERE month = $1), 0)
-            + COALESCE((SELECT SUM(amount) FROM gp_credit_card_purchase_allocations WHERE month = $1), 0)
-            AS planned_amount
-        `,
-        [month]
       ),
       pool.query(
         `
@@ -363,6 +339,15 @@ router.get('/', async (req, res, next) => {
           GROUP BY c.name
           ORDER BY total DESC
           LIMIT 10
+        `,
+        monthFilters.params
+      ),
+      pool.query(
+        `
+          SELECT e.method, COALESCE(SUM(e.amount), 0) AS total
+          ${baseFrom}
+          ${monthFilters.whereClause}
+          GROUP BY e.method
         `,
         monthFilters.params
       ),
@@ -419,9 +404,12 @@ router.get('/', async (req, res, next) => {
     ]);
 
     const spendMonth = toMoney(spendMonthRes.rows[0].total);
-    const cardSpendMonth = toMoney(cardSpendMonthRes.rows[0].total);
-    const creditCardPlannedMonth = toMoney(creditCardPlannedRes.rows[0]?.planned_amount || 0);
-    const projectedSpendMonth = toMoney(spendMonth + creditCardPlannedMonth);
+    const byMethodMap = new Map(byMethodRes.rows.map((row) => [row.method, toMoney(row.total)]));
+    const cardMethodName =
+      PAYMENT_METHODS.find((methodName) => methodName.toLowerCase().startsWith('cart')) || 'Cartão';
+    const cardSpendMonth = toMoney(byMethodMap.get(cardMethodName) || 0);
+    const creditCardPlannedMonth = 0;
+    const projectedSpendMonth = spendMonth;
     const gainMonth = toMoney(gainMonthRes.rows[0].total);
     const reserveResgateMonth = toMoney(reserveMonthRes.rows[0].total_resgate);
     const reserveAporteMonth = toMoney(reserveMonthRes.rows[0].total_aporte);
@@ -451,6 +439,16 @@ router.get('/', async (req, res, next) => {
         category_name: row.category_name,
         total_spend: totalSpend,
         percent_of_salary: salaryTotal > 0 ? round1((totalSpend / salaryTotal) * 100) : null,
+      };
+    });
+
+    const byMethod = PAYMENT_METHODS.map((methodName) => {
+      const totalSpend = toMoney(byMethodMap.get(methodName) || 0);
+      return {
+        method: methodName,
+        total_spend: totalSpend,
+        percent_of_salary: salaryTotal > 0 ? round1((totalSpend / salaryTotal) * 100) : null,
+        percent_of_month_spend: spendMonth > 0 ? round1((totalSpend / spendMonth) * 100) : 0,
       };
     });
 
@@ -586,6 +584,7 @@ router.get('/', async (req, res, next) => {
       },
       by_type: byType,
       by_category: byCategory,
+      by_method: byMethod,
       daily_series: dailySeries,
       monthly_series: monthlySeries,
       latest_expenses: latestRes.rows.map((row) => ({
