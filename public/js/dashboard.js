@@ -861,8 +861,11 @@
     const spendMonth = money(totals.projected_spend_month || spendMonthReal);
     const spendToday = isCurrentMonth ? money(totals.spend_today || 0) : money(lastDaySpend(dailySeries));
     const spendWeek = isCurrentMonth ? money(totals.spend_week || 0) : money(sumLastDays(dailySeries, 7, 'total_spend'));
-    const dailyAverage = daysElapsed > 0 ? money(spendMonth / daysElapsed) : 0;
+    const observedDailyAverage = daysElapsed > 0 ? money(spendMonthReal / daysElapsed) : 0;
     const weeklyAverage = money(spendWeek / 7);
+    const trailingDays = isFutureMonth ? 0 : Math.min(Math.max(daysElapsed, 1), 7);
+    const trailingSpend = trailingDays > 0 ? money(sumLastDays(dailySeries, trailingDays, 'total_spend')) : 0;
+    const trailingDailyAverage = trailingDays > 0 ? money(trailingSpend / trailingDays) : 0;
 
     const trendValues = monthlySeries
       .filter((item) => typeof item?.month === 'string' && item.month < selectedMonth)
@@ -884,8 +887,28 @@
       : 0;
 
     const historyBaseline = trendMedian > 0 ? trendMedian : trendAverage;
+    const historyDailyBaseline =
+      daysInMonth > 0 && historyBaseline > 0 ? money(historyBaseline / daysInMonth) : 0;
+
+    let dailyAverage = observedDailyAverage;
+    if (isCurrentMonth) {
+      if (historyDailyBaseline > 0) {
+        const capFactor = daysElapsed <= 7 ? 1.6 : daysElapsed <= 15 ? 2.1 : 2.8;
+        const cappedTrailing =
+          trailingDailyAverage > 0
+            ? clamp(trailingDailyAverage, historyDailyBaseline * 0.35, historyDailyBaseline * capFactor)
+            : historyDailyBaseline;
+        const historyWeight = daysElapsed <= 7 ? 0.88 : daysElapsed <= 15 ? 0.7 : 0.5;
+        dailyAverage = money(historyDailyBaseline * historyWeight + cappedTrailing * (1 - historyWeight));
+      } else {
+        dailyAverage = trailingDailyAverage > 0 ? trailingDailyAverage : observedDailyAverage;
+      }
+    } else if (!isFutureMonth && daysInMonth > 0) {
+      dailyAverage = money(spendMonthReal / daysInMonth);
+    }
+
     const progress = daysInMonth > 0 ? daysElapsed / daysInMonth : 0;
-    const currentProjection = daysElapsed > 0 ? money((spendMonthReal / daysElapsed) * daysInMonth) : 0;
+    const currentProjection = daysInMonth > 0 ? money(dailyAverage * daysInMonth) : 0;
 
     const trendRatioRaw =
       trendNonZero.length >= 2
@@ -923,13 +946,13 @@
     const nextMonth = getNextMonth(selectedMonth);
 
     const dailyHint = isCurrentMonth
-      ? `Hoje: ${formatBRL(spendToday)}. Ritmo atual: ${formatBRL(dailyAverage)} por dia.`
-      : `Ultimo dia do mes: ${formatBRL(spendToday)}. Ritmo do mes: ${formatBRL(dailyAverage)} por dia.`;
+      ? `Hoje: ${formatBRL(spendToday)}. Media diaria suavizada: ${formatBRL(dailyAverage)} por dia.`
+      : `Ultimo dia do mes: ${formatBRL(spendToday)}. Media diaria do mes: ${formatBRL(dailyAverage)} por dia.`;
 
     const forecastHint = historyBaseline > 0
-      ? `Base historica: ${formatBRL(historyBaseline)}. Ritmo projetado do mes atual: ${formatBRL(currentProjection)}.`
+      ? `Base historica: ${formatBRL(historyBaseline)}. Ritmo suavizado atual: ${formatBRL(dailyAverage)}/dia (${formatBRL(currentProjection)} no mes).`
       : daysElapsed > 0
-      ? `Sem historico suficiente; base no ritmo atual (${formatBRL(dailyAverage)}/dia).`
+      ? `Sem historico suficiente; base no ritmo suavizado atual (${formatBRL(dailyAverage)}/dia).`
       : 'Sem base diaria suficiente; previsao baseada no historico recente.';
 
     return {
