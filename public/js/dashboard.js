@@ -4,6 +4,7 @@
 
   const TYPES = ['Essencial', 'Besteira', 'Investimento', 'Lazer', 'Outros'];
   const TYPE_COLORS = ['#38bdf8', '#f97316', '#22c55e', '#f59e0b', '#a78bfa'];
+  const FUTURE_EXPENSES_PREF_KEY = 'gp_include_future_expenses_dashboard';
 
   const barValueLabelPlugin = {
     id: 'barValueLabel',
@@ -118,6 +119,7 @@
     month: currentMonthISO(),
     type: '',
     category: '',
+    includeFutureExpenses: readIncludeFutureExpensesPreference(),
     categories: [],
     latest: [],
     charts: {},
@@ -131,6 +133,7 @@
   async function init() {
     cacheElements();
     bindEvents();
+    renderFutureExpensesToggle();
 
     els.monthSelect.value = state.month;
 
@@ -142,6 +145,7 @@
     els.monthSelect = document.getElementById('monthSelect');
     els.typeFilter = document.getElementById('typeFilter');
     els.categoryFilter = document.getElementById('categoryFilter');
+    els.futureExpensesToggle = document.getElementById('futureExpensesToggle');
     els.latestBody = document.getElementById('latestExpensesBody');
     els.lastRefresh = document.getElementById('lastRefreshAt');
 
@@ -195,6 +199,15 @@
       state.category = els.categoryFilter.value;
       await refreshDashboard();
     });
+
+    if (els.futureExpensesToggle) {
+      els.futureExpensesToggle.addEventListener('click', async () => {
+        state.includeFutureExpenses = !state.includeFutureExpenses;
+        persistIncludeFutureExpensesPreference(state.includeFutureExpenses);
+        renderFutureExpensesToggle();
+        await refreshDashboard();
+      });
+    }
 
     els.latestBody.addEventListener('click', async (event) => {
       const target = event.target.closest('button[data-action]');
@@ -344,6 +357,7 @@
     const params = new URLSearchParams({ month: state.month });
     if (state.type) params.set('type', state.type);
     if (state.category) params.set('category', state.category);
+    params.set('include_future', state.includeFutureExpenses ? '1' : '0');
     return `/api/dashboard?${params.toString()}`;
   }
 
@@ -791,6 +805,18 @@
       .join('');
   }
 
+  function renderFutureExpensesToggle() {
+    if (!els.futureExpensesToggle) return;
+    const enabled = Boolean(state.includeFutureExpenses);
+    els.futureExpensesToggle.textContent = enabled ? 'Futuros: ON' : 'Futuros: OFF';
+    els.futureExpensesToggle.setAttribute(
+      'title',
+      enabled
+        ? 'Contando gastos com data futura no mês selecionado.'
+        : 'Ignorando gastos com data futura (após hoje).'
+    );
+  }
+
   function setAssistantOpen(nextOpen) {
     state.assistantOpen = Boolean(nextOpen);
     if (!els.assistantPanel || !els.assistantFab) return;
@@ -1020,6 +1046,24 @@
     const number = Number(value || 0);
     if (!Number.isFinite(number)) return 0;
     return Math.round((number + Number.EPSILON) * 100) / 100;
+  }
+
+  function readIncludeFutureExpensesPreference() {
+    try {
+      const raw = window.localStorage.getItem(FUTURE_EXPENSES_PREF_KEY);
+      if (raw === null) return true;
+      return raw === '1';
+    } catch (_error) {
+      return true;
+    }
+  }
+
+  function persistIncludeFutureExpensesPreference(enabled) {
+    try {
+      window.localStorage.setItem(FUTURE_EXPENSES_PREF_KEY, enabled ? '1' : '0');
+    } catch (_error) {
+      // Ignora falha de storage e segue com estado em memoria.
+    }
   }
 
   function clamp(value, min, max) {

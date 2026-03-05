@@ -53,6 +53,13 @@ function nextDay(dateText) {
   return formatIsoDate(date);
 }
 
+function capRangeEndAtToday(start, end) {
+  const todayIso = formatIsoDate(new Date());
+  const tomorrowIso = nextDay(todayIso);
+  if (start >= tomorrowIso) return start;
+  return end > tomorrowIso ? tomorrowIso : end;
+}
+
 function mondayOfCurrentWeek(reference) {
   const date = new Date(reference);
   const day = date.getDay();
@@ -166,7 +173,7 @@ function buildYearMonth(year, monthNumber) {
   return `${year}-${String(monthNumber).padStart(2, '0')}`;
 }
 
-async function computePositiveCarryover({ month, type, category }) {
+async function computePositiveCarryover({ month, type, category, includeFuture = true }) {
   const parsedMonth = parseMonth(month);
   if (!parsedMonth) return 0;
 
@@ -188,10 +195,13 @@ async function computePositiveCarryover({ month, type, category }) {
     const iterRange = getMonthRange(iterMonth);
     const iterSettings = await getEffectiveSettings(iterMonth);
     const iterSalaryTotal = toMoney(Number(iterSettings.net_salary || 0) + Number(iterSettings.extra_income || 0));
+    const iterExpensesEnd = includeFuture
+      ? iterRange.end
+      : capRangeEndAtToday(iterRange.start, iterRange.end);
 
     const iterSpendFilters = buildFilterClause({
       start: iterRange.start,
-      end: iterRange.end,
+      end: iterExpensesEnd,
       type: type || null,
       category: category || null,
     });
@@ -257,6 +267,18 @@ router.get('/', async (req, res, next) => {
     }
 
     const category = req.query.category ? String(req.query.category).trim() : '';
+    const includeFutureRaw = req.query.include_future;
+    let includeFuture = true;
+    if (includeFutureRaw !== undefined) {
+      const normalized = String(includeFutureRaw).trim().toLowerCase();
+      if (['1', 'true', 'on', 'yes', 'sim'].includes(normalized)) {
+        includeFuture = true;
+      } else if (['0', 'false', 'off', 'no', 'nao', 'não'].includes(normalized)) {
+        includeFuture = false;
+      } else {
+        return res.status(400).json({ error: 'include_future invalido. Use 1/0, true/false.' });
+      }
+    }
     const monthRange = getMonthRange(month);
     const selectedMonthStart = monthStartFromYearMonth(month);
     const monthlyStart = addUtcMonths(selectedMonthStart, -11);
@@ -273,18 +295,25 @@ router.get('/', async (req, res, next) => {
       month,
       type,
       category,
+      includeFuture,
     });
 
     const baseFrom = 'FROM gp_expenses e JOIN gp_categories c ON c.id = e.category_id';
+    const monthExpensesEnd = includeFuture
+      ? monthRange.end
+      : capRangeEndAtToday(monthRange.start, monthRange.end);
+    const monthlyExpensesEnd = includeFuture
+      ? monthlyRangeEnd
+      : capRangeEndAtToday(monthlyRangeStart, monthlyRangeEnd);
     const monthFilters = buildFilterClause({
       start: monthRange.start,
-      end: monthRange.end,
+      end: monthExpensesEnd,
       type: type || null,
       category: category || null,
     });
     const monthlyFilters = buildFilterClause({
       start: monthlyRangeStart,
-      end: monthlyRangeEnd,
+      end: monthlyExpensesEnd,
       type: type || null,
       category: category || null,
     });
@@ -556,6 +585,7 @@ router.get('/', async (req, res, next) => {
 
     res.json({
       month,
+      include_future: includeFuture,
       income_source: settingsRow.income_source,
       monthly_income_updated_at: settingsRow.monthly_income_updated_at,
       salary_total: salaryTotal,
