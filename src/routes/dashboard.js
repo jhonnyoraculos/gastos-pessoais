@@ -103,7 +103,7 @@ function buildFilterClause({ start, end, type, category, method }) {
   };
 }
 
-function buildIncomeFilterClause({ start, end, category }) {
+function buildIncomeFilterClause({ start, end, category, method }) {
   const params = [];
   const filters = [];
   const addParam = (input) => {
@@ -119,6 +119,12 @@ function buildIncomeFilterClause({ start, end, category }) {
     } else {
       filters.push(`LOWER(c.name) = LOWER(${addParam(category)})`);
     }
+  }
+
+  if (method) {
+    filters.push(
+      `LOWER(translate(i.method, 'ãÃ', 'aa')) = LOWER(translate(${addParam(method)}, 'ãÃ', 'aa'))`
+    );
   }
 
   return {
@@ -173,7 +179,7 @@ function buildYearMonth(year, monthNumber) {
   return `${year}-${String(monthNumber).padStart(2, '0')}`;
 }
 
-async function computePositiveCarryover({ month, type, category, includeFuture = true }) {
+async function computePositiveCarryover({ month, type, category, method, includeFuture = true }) {
   const parsedMonth = parseMonth(month);
   if (!parsedMonth) return 0;
 
@@ -204,11 +210,13 @@ async function computePositiveCarryover({ month, type, category, includeFuture =
       end: iterExpensesEnd,
       type: type || null,
       category: category || null,
+      method: method || null,
     });
     const iterIncomeFilters = buildIncomeFilterClause({
       start: iterRange.start,
       end: iterRange.end,
       category: category || null,
+      method: method || null,
     });
 
     const [iterSpendRes, iterGainRes, iterReserveRes] = await Promise.all([
@@ -267,6 +275,10 @@ router.get('/', async (req, res, next) => {
     }
 
     const category = req.query.category ? String(req.query.category).trim() : '';
+    const method = req.query.method ? String(req.query.method).trim() : '';
+    if (method && !PAYMENT_METHODS.includes(method)) {
+      return res.status(400).json({ error: `method invalido. Use: ${PAYMENT_METHODS.join(', ')}.` });
+    }
     const includeFutureRaw = req.query.include_future;
     let includeFuture = true;
     if (includeFutureRaw !== undefined) {
@@ -295,6 +307,7 @@ router.get('/', async (req, res, next) => {
       month,
       type,
       category,
+      method,
       includeFuture,
     });
 
@@ -310,17 +323,20 @@ router.get('/', async (req, res, next) => {
       end: monthExpensesEnd,
       type: type || null,
       category: category || null,
+      method: method || null,
     });
     const monthlyFilters = buildFilterClause({
       start: monthlyRangeStart,
       end: monthlyExpensesEnd,
       type: type || null,
       category: category || null,
+      method: method || null,
     });
     const incomeMonthFilters = buildIncomeFilterClause({
       start: monthRange.start,
       end: monthRange.end,
       category: category || null,
+      method: method || null,
     });
 
     const [spendMonthRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, byMethodRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
@@ -522,22 +538,26 @@ router.get('/', async (req, res, next) => {
         end: tomorrowIso,
         type: type || null,
         category: category || null,
+        method: method || null,
       });
       const weekFilters = buildFilterClause({
         start: weekStartIso,
         end: tomorrowIso,
         type: type || null,
         category: category || null,
+        method: method || null,
       });
       const incomeTodayFilters = buildIncomeFilterClause({
         start: todayIso,
         end: tomorrowIso,
         category: category || null,
+        method: method || null,
       });
       const incomeWeekFilters = buildIncomeFilterClause({
         start: weekStartIso,
         end: tomorrowIso,
         category: category || null,
+        method: method || null,
       });
 
       const [todayRes, weekRes, gainTodayRes, gainWeekRes] = await Promise.all([
@@ -585,6 +605,7 @@ router.get('/', async (req, res, next) => {
 
     res.json({
       month,
+      method: method || null,
       include_future: includeFuture,
       income_source: settingsRow.income_source,
       monthly_income_updated_at: settingsRow.monthly_income_updated_at,

@@ -120,8 +120,14 @@
     type: '',
     category: '',
     includeFutureExpenses: readIncludeFutureExpensesPreference(),
+    chartMethod: '',
+    chartDailyMode: 'both',
+    chartCategoryLimit: 5,
+    chartHistoryWindow: 12,
     categories: [],
     latest: [],
+    dashboardPayload: null,
+    chartPayload: null,
     charts: {},
     assistantOpen: false,
   };
@@ -134,6 +140,7 @@
     cacheElements();
     bindEvents();
     renderFutureExpensesToggle();
+    renderChartFilterControls();
 
     els.monthSelect.value = state.month;
 
@@ -146,6 +153,10 @@
     els.typeFilter = document.getElementById('typeFilter');
     els.categoryFilter = document.getElementById('categoryFilter');
     els.futureExpensesToggle = document.getElementById('futureExpensesToggle');
+    els.chartMethodFilter = document.getElementById('chartMethodFilter');
+    els.chartDailyModeFilter = document.getElementById('chartDailyModeFilter');
+    els.chartCategoryLimitFilter = document.getElementById('chartCategoryLimitFilter');
+    els.chartHistoryWindowFilter = document.getElementById('chartHistoryWindowFilter');
     els.latestBody = document.getElementById('latestExpensesBody');
     els.lastRefresh = document.getElementById('lastRefreshAt');
 
@@ -206,6 +217,34 @@
         persistIncludeFutureExpensesPreference(state.includeFutureExpenses);
         renderFutureExpensesToggle();
         await refreshDashboard();
+      });
+    }
+
+    if (els.chartMethodFilter) {
+      els.chartMethodFilter.addEventListener('change', async () => {
+        state.chartMethod = els.chartMethodFilter.value;
+        await refreshDashboard();
+      });
+    }
+
+    if (els.chartDailyModeFilter) {
+      els.chartDailyModeFilter.addEventListener('change', () => {
+        state.chartDailyMode = els.chartDailyModeFilter.value || 'both';
+        renderCharts(state.chartPayload || state.dashboardPayload);
+      });
+    }
+
+    if (els.chartCategoryLimitFilter) {
+      els.chartCategoryLimitFilter.addEventListener('change', () => {
+        state.chartCategoryLimit = normalizePositiveInteger(els.chartCategoryLimitFilter.value, 5);
+        renderCharts(state.chartPayload || state.dashboardPayload);
+      });
+    }
+
+    if (els.chartHistoryWindowFilter) {
+      els.chartHistoryWindowFilter.addEventListener('change', () => {
+        state.chartHistoryWindow = normalizePositiveInteger(els.chartHistoryWindowFilter.value, 12);
+        renderCharts(state.chartPayload || state.dashboardPayload);
       });
     }
 
@@ -353,10 +392,12 @@
     }
   }
 
-  function dashboardUrl() {
+  function dashboardUrl(options = {}) {
+    const { method = null } = options;
     const params = new URLSearchParams({ month: state.month });
     if (state.type) params.set('type', state.type);
     if (state.category) params.set('category', state.category);
+    if (method) params.set('method', method);
     params.set('include_future', state.includeFutureExpenses ? '1' : '0');
     return `/api/dashboard?${params.toString()}`;
   }
@@ -367,11 +408,17 @@
       if (withLoading) {
         setLoading(true, 'Atualizando dashboard...');
       }
-      const payload = await apiFetch(dashboardUrl());
+      const chartMethod = state.chartMethod || null;
+      const [payload, chartPayload] = await Promise.all([
+        apiFetch(dashboardUrl()),
+        chartMethod ? apiFetch(dashboardUrl({ method: chartMethod })) : Promise.resolve(null),
+      ]);
+      state.dashboardPayload = payload;
+      state.chartPayload = chartPayload || payload;
       state.latest = payload.latest_expenses || [];
 
       renderMetrics(payload);
-      renderCharts(payload);
+      renderCharts(state.chartPayload);
       renderAssistant(payload);
       renderLatestTable(state.latest);
       els.lastRefresh.textContent = `Atualizado em ${new Date().toLocaleTimeString('pt-BR')}`;
@@ -411,6 +458,10 @@
   }
 
   function renderCharts(payload) {
+    if (!payload) {
+      return;
+    }
+
     const typeLabels = payload.by_type.map((item) => item.type);
     const typeSpendValues = payload.by_type.map((item) => Number(item.total_spend || 0));
     const typeSalaryPercents = payload.by_type.map((item) =>
@@ -436,7 +487,8 @@
         value: Number(item.total_spend || 0),
         color: categoryPalette[index % categoryPalette.length],
       }))
-      .filter((item) => item.value > 0);
+      .filter((item) => item.value > 0)
+      .slice(0, state.chartCategoryLimit);
 
     const categoryLabels = categoryEntries.length ? categoryEntries.map((item) => item.label) : ['Sem dados'];
     const categoryValues = categoryEntries.length ? categoryEntries.map((item) => item.value) : [1];
@@ -459,9 +511,40 @@
     const dailyLabels = payload.daily_series.map((item) => String(item.day).padStart(2, '0'));
     const dailyValues = payload.daily_series.map((item) => Number(item.total_spend || 0));
     const dailyGainValues = payload.daily_series.map((item) => Number(item.total_gain || 0));
-    const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series : [];
+    const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series.slice(-state.chartHistoryWindow) : [];
     const monthlyLabels = monthlySeries.map((item) => formatMonthLabel(item.month));
     const monthlyValues = monthlySeries.map((item) => Number(item.total_spend || 0));
+    const dailyDatasets = [];
+
+    if (state.chartDailyMode !== 'gain') {
+      dailyDatasets.push({
+        label: 'Gasto por dia',
+        data: dailyValues,
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56, 189, 248, 0.24)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        yAxisID: 'y',
+      });
+    }
+
+    if (state.chartDailyMode !== 'spend') {
+      dailyDatasets.push({
+        label: 'Ganho por dia',
+        data: dailyGainValues,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.16)',
+        borderWidth: 3,
+        fill: false,
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        yAxisID: 'y',
+      });
+    }
 
     renderOrReplaceChart('typeSpendChart', document.getElementById('chartTypeSpend'), {
       type: 'doughnut',
@@ -533,32 +616,7 @@
       type: 'line',
       data: {
         labels: dailyLabels,
-        datasets: [
-          {
-            label: 'Gasto por dia',
-            data: dailyValues,
-            borderColor: '#38bdf8',
-            backgroundColor: 'rgba(56, 189, 248, 0.24)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-            yAxisID: 'y',
-          },
-          {
-            label: 'Ganho por dia',
-            data: dailyGainValues,
-            borderColor: '#22c55e',
-            backgroundColor: 'rgba(34, 197, 94, 0.16)',
-            borderWidth: 3,
-            fill: false,
-            tension: 0.3,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            yAxisID: 'y',
-          },
-        ],
+        datasets: dailyDatasets,
       },
       options: chartOptions({
         interaction: {
@@ -817,6 +875,21 @@
     );
   }
 
+  function renderChartFilterControls() {
+    if (els.chartMethodFilter) {
+      els.chartMethodFilter.value = state.chartMethod;
+    }
+    if (els.chartDailyModeFilter) {
+      els.chartDailyModeFilter.value = state.chartDailyMode;
+    }
+    if (els.chartCategoryLimitFilter) {
+      els.chartCategoryLimitFilter.value = String(state.chartCategoryLimit);
+    }
+    if (els.chartHistoryWindowFilter) {
+      els.chartHistoryWindowFilter.value = String(state.chartHistoryWindow);
+    }
+  }
+
   function setAssistantOpen(nextOpen) {
     state.assistantOpen = Boolean(nextOpen);
     if (!els.assistantPanel || !els.assistantFab) return;
@@ -1046,6 +1119,14 @@
     const number = Number(value || 0);
     if (!Number.isFinite(number)) return 0;
     return Math.round((number + Number.EPSILON) * 100) / 100;
+  }
+
+  function normalizePositiveInteger(value, fallback) {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return fallback;
+    }
+    return parsed;
   }
 
   function readIncludeFutureExpensesPreference() {

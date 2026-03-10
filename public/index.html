@@ -100,6 +100,47 @@
             </article>
           </section>
 
+          <section class="panel chart-filters-panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Filtros dos gráficos</h3>
+              <div class="footer-note">Ajuste só os gráficos sem mexer nos cards do dashboard.</div>
+            </div>
+            <div class="chart-filters-grid">
+              <div class="field">
+                <label for="chartMethodFilter">Método nos gráficos</label>
+                <select id="chartMethodFilter">
+                  <option value="">Todos os métodos</option>
+                  <option value="Pix">Pix</option>
+                  <option value="Cartão">Cartão</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="chartDailyModeFilter">Linha diária</label>
+                <select id="chartDailyModeFilter">
+                  <option value="both">Gastos e ganhos</option>
+                  <option value="spend">Só gastos</option>
+                  <option value="gain">Só ganhos</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="chartCategoryLimitFilter">Categorias</label>
+                <select id="chartCategoryLimitFilter">
+                  <option value="5">Top 5</option>
+                  <option value="10">Top 10</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="chartHistoryWindowFilter">Histórico mensal</label>
+                <select id="chartHistoryWindowFilter">
+                  <option value="6">Últimos 6 meses</option>
+                  <option value="12">Últimos 12 meses</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
           <section class="charts-grid">
             <article class="chart-card">
               <h3>Distribuição do gasto por tipo</h3>

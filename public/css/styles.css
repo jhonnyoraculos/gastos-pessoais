@@ -209,6 +209,16 @@ a {
   min-width: 0;
 }
 
+.chart-filters-panel {
+  padding-bottom: 14px;
+}
+
+.chart-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  gap: 12px;
+}
+
 .chart-card {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -658,6 +668,10 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .chart-filters-grid {
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+  }
+
   .form-grid {
     grid-template-columns: repeat(2, minmax(140px, 1fr));
   }
@@ -671,6 +685,10 @@ textarea {
   .cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .chart-filters-grid {
+    grid-template-columns: 1fr;
   }
 
   .form-grid,
