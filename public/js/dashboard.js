@@ -516,6 +516,10 @@
       dailyPrintsSeries.length > 0
         ? dailyPrintsSeries.map((item) => Number(item.total_spend || 0))
         : dailyLabels.map(() => 0);
+    const dailyPrintsGainValues =
+      dailyPrintsSeries.length > 0
+        ? dailyPrintsSeries.map((item) => Number(item.total_gain || 0))
+        : dailyLabels.map(() => 0);
     const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series.slice(-state.chartHistoryWindow) : [];
     const monthlyLabels = monthlySeries.map((item) => formatMonthLabel(item.month));
     const monthlyValues = monthlySeries.map((item) => Number(item.total_spend || 0));
@@ -524,6 +528,7 @@
       : [];
     const monthlyPrintsLabels = monthlyPrintsSeries.map((item) => formatMonthLabel(item.month));
     const monthlyPrintsValues = monthlyPrintsSeries.map((item) => Number(item.total_spend || 0));
+    const monthlyPrintsGainValues = monthlyPrintsSeries.map((item) => Number(item.total_gain || 0));
     const dailyDatasets = [];
 
     if (state.chartDailyMode !== 'gain') {
@@ -666,7 +671,7 @@
         labels: dailyLabels,
         datasets: [
           {
-            label: 'ImpressÃµes por dia',
+            label: 'Gastos de impressão',
             data: dailyPrintsValues,
             borderColor: '#f472b6',
             backgroundColor: 'rgba(244, 114, 182, 0.18)',
@@ -675,6 +680,17 @@
             tension: 0.3,
             pointRadius: 3,
             pointHoverRadius: 5,
+          },
+          {
+            label: 'Ganhos de impressão',
+            data: dailyPrintsGainValues,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.14)',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
           },
         ],
       },
@@ -685,7 +701,7 @@
             offsetY: 10,
             hideZero: true,
             minValue: 10,
-            maxLabelsPerDataset: 4,
+            maxLabelsPerDataset: 3,
           },
         },
         scales: {
@@ -730,7 +746,7 @@
         labels: methodLabels,
         datasets: [
           {
-            label: 'Gasto por mÃ©todo',
+            label: 'Gasto por método',
             data: methodValues,
             backgroundColor: methodColors,
             borderRadius: 6,
@@ -807,7 +823,7 @@
         labels: monthlyPrintsLabels,
         datasets: [
           {
-            label: 'Impressoes mensais',
+            label: 'Gastos de impressão',
             data: monthlyPrintsValues,
             borderColor: '#f472b6',
             backgroundColor: 'rgba(244, 114, 182, 0.18)',
@@ -816,6 +832,17 @@
             tension: 0.3,
             pointRadius: 3,
             pointHoverRadius: 5,
+          },
+          {
+            label: 'Ganhos de impressão',
+            data: monthlyPrintsGainValues,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.14)',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6,
           },
         ],
       },
@@ -826,7 +853,7 @@
             offsetY: 10,
             hideZero: true,
             minValue: 10,
-            maxLabelsPerDataset: 6,
+            maxLabelsPerDataset: 4,
           },
         },
         scales: {
@@ -972,8 +999,8 @@
     els.futureExpensesToggle.setAttribute(
       'title',
       enabled
-        ? 'Contando gastos com data futura no mÃªs selecionado.'
-        : 'Ignorando gastos com data futura (apÃ³s hoje).'
+        ? 'Contando gastos com data futura no mês selecionado.'
+        : 'Ignorando gastos com data futura (após hoje).'
     );
   }
 

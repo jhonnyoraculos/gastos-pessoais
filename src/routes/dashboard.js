@@ -69,6 +69,27 @@ function mondayOfCurrentWeek(reference) {
   return date;
 }
 
+function normalizePaymentMethod(value) {
+  const repaired = String(value || '').trim().replace(/Ã£/g, 'ã');
+  if (!repaired) return '';
+
+  const ascii = repaired
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  if (ascii === 'pix') return 'Pix';
+  if (ascii === 'cartao') return 'Cartão';
+  if (ascii === 'dinheiro') return 'Dinheiro';
+  if (ascii === 'outro') return 'Outro';
+
+  return '';
+}
+
+function sqlNormalizeMethod(expression) {
+  return `LOWER(REPLACE(REPLACE(${expression}, 'Ã£', 'a'), 'ã', 'a'))`;
+}
+
 function buildFilterClause({ start, end, type, category, method }) {
   const params = [];
   const filters = [];
@@ -92,9 +113,8 @@ function buildFilterClause({ start, end, type, category, method }) {
   }
 
   if (method) {
-    filters.push(
-      `LOWER(translate(e.method, 'ãÃ', 'aa')) = LOWER(translate(${addParam(method)}, 'ãÃ', 'aa'))`
-    );
+    const methodParam = addParam(method);
+    filters.push(`${sqlNormalizeMethod('e.method')} = ${sqlNormalizeMethod(methodParam)}`);
   }
 
   return {
@@ -122,9 +142,8 @@ function buildIncomeFilterClause({ start, end, category, method }) {
   }
 
   if (method) {
-    filters.push(
-      `LOWER(translate(i.method, 'ãÃ', 'aa')) = LOWER(translate(${addParam(method)}, 'ãÃ', 'aa'))`
-    );
+    const methodParam = addParam(method);
+    filters.push(`${sqlNormalizeMethod('i.method')} = ${sqlNormalizeMethod(methodParam)}`);
   }
 
   return {
@@ -275,8 +294,9 @@ router.get('/', async (req, res, next) => {
     }
 
     const category = req.query.category ? String(req.query.category).trim() : '';
-    const method = req.query.method ? String(req.query.method).trim() : '';
-    if (method && !PAYMENT_METHODS.includes(method)) {
+    const rawMethod = req.query.method ? String(req.query.method).trim() : '';
+    const method = rawMethod ? normalizePaymentMethod(rawMethod) : '';
+    if (rawMethod && !method) {
       return res.status(400).json({ error: `method invalido. Use: ${PAYMENT_METHODS.join(', ')}.` });
     }
     const includeFutureRaw = req.query.include_future;
@@ -352,6 +372,18 @@ router.get('/', async (req, res, next) => {
       category: category || null,
       method: method || null,
     });
+    const printsIncomeMonthFilters = buildIncomeFilterClause({
+      start: monthRange.start,
+      end: monthRange.end,
+      category: null,
+      method: method || null,
+    });
+    const printsIncomeMonthlyFilters = buildIncomeFilterClause({
+      start: monthlyRangeStart,
+      end: monthlyRangeEnd,
+      category: null,
+      method: method || null,
+    });
 
     const [
       spendMonthRes,
@@ -363,8 +395,10 @@ router.get('/', async (req, res, next) => {
       dailyRes,
       dailyPrintsRes,
       dailyGainRes,
+      dailyPrintsGainRes,
       monthlyRes,
       monthlyPrintsRes,
+      monthlyPrintsGainRes,
       latestRes,
     ] = await Promise.all([
       pool.query(
@@ -457,6 +491,18 @@ router.get('/', async (req, res, next) => {
       ),
       pool.query(
         `
+          SELECT EXTRACT(DAY FROM i.date)::int AS day, COALESCE(SUM(i.amount), 0) AS total
+          FROM gp_incomes i
+          JOIN gp_categories c ON c.id = i.category_id
+          ${printsIncomeMonthFilters.whereClause}
+          AND LOWER(c.name) LIKE '%impress%'
+          GROUP BY day
+          ORDER BY day
+        `,
+        printsIncomeMonthFilters.params
+      ),
+      pool.query(
+        `
           SELECT to_char(date_trunc('month', e.date), 'YYYY-MM') AS month, COALESCE(SUM(e.amount), 0) AS total
           ${baseFrom}
           ${monthlyFilters.whereClause}
@@ -475,6 +521,18 @@ router.get('/', async (req, res, next) => {
           ORDER BY 1
         `,
         printsMonthlyFilters.params
+      ),
+      pool.query(
+        `
+          SELECT to_char(date_trunc('month', i.date), 'YYYY-MM') AS month, COALESCE(SUM(i.amount), 0) AS total
+          FROM gp_incomes i
+          JOIN gp_categories c ON c.id = i.category_id
+          ${printsIncomeMonthlyFilters.whereClause}
+          AND LOWER(c.name) LIKE '%impress%'
+          GROUP BY 1
+          ORDER BY 1
+        `,
+        printsIncomeMonthlyFilters.params
       ),
       pool.query(
         `
@@ -498,7 +556,11 @@ router.get('/', async (req, res, next) => {
     ]);
 
     const spendMonth = toMoney(spendMonthRes.rows[0].total);
-    const byMethodMap = new Map(byMethodRes.rows.map((row) => [row.method, toMoney(row.total)]));
+    const byMethodMap = byMethodRes.rows.reduce((map, row) => {
+      const normalizedMethod = normalizePaymentMethod(row.method) || row.method;
+      map.set(normalizedMethod, toMoney((map.get(normalizedMethod) || 0) + Number(row.total || 0)));
+      return map;
+    }, new Map());
     const cardMethodName =
       PAYMENT_METHODS.find((methodName) => methodName.toLowerCase().startsWith('cart')) || 'Cartão';
     const cardSpendMonth = toMoney(byMethodMap.get(cardMethodName) || 0);
@@ -549,6 +611,7 @@ router.get('/', async (req, res, next) => {
     const dailyMap = new Map(dailyRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
     const dailyPrintsMap = new Map(dailyPrintsRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
     const dailyGainMap = new Map(dailyGainRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
+    const dailyPrintsGainMap = new Map(dailyPrintsGainRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
     const dailySeries = [];
     const dailyPrintsSeries = [];
     for (let day = 1; day <= monthRange.daysInMonth; day += 1) {
@@ -560,6 +623,7 @@ router.get('/', async (req, res, next) => {
       dailyPrintsSeries.push({
         day,
         total_spend: dailyPrintsMap.get(day) || 0,
+        total_gain: dailyPrintsGainMap.get(day) || 0,
       });
     }
 
@@ -568,6 +632,9 @@ router.get('/', async (req, res, next) => {
     );
     const monthlyPrintsMap = new Map(
       monthlyPrintsRes.rows.map((row) => [row.month, toMoney(row.total)])
+    );
+    const monthlyPrintsGainMap = new Map(
+      monthlyPrintsGainRes.rows.map((row) => [row.month, toMoney(row.total)])
     );
     const monthlySeries = [];
     const monthlyPrintsSeries = [];
@@ -581,6 +648,7 @@ router.get('/', async (req, res, next) => {
       monthlyPrintsSeries.push({
         month: yearMonth,
         total_spend: monthlyPrintsMap.get(yearMonth) || 0,
+        total_gain: monthlyPrintsGainMap.get(yearMonth) || 0,
       });
     }
 
@@ -711,7 +779,7 @@ router.get('/', async (req, res, next) => {
         category_id: Number(row.category_id),
         category_name: row.category_name,
         type: row.type,
-        method: row.method,
+        method: normalizePaymentMethod(row.method) || row.method,
         notes: row.notes || null,
       })),
     });
