@@ -196,6 +196,18 @@ a {
   word-break: break-word;
 }
 
+.metric-value.positive {
+  color: var(--success);
+}
+
+.metric-value.negative {
+  color: var(--danger);
+}
+
+.metric-value.neutral {
+  color: #f8fbff;
+}
+
 .metric-hint {
   margin-top: 8px;
   color: var(--text-muted);

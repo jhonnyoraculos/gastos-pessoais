@@ -636,6 +636,16 @@ router.get('/', async (req, res, next) => {
     const monthlyPrintsGainMap = new Map(
       monthlyPrintsGainRes.rows.map((row) => [row.month, toMoney(row.total)])
     );
+    const previousMonth = formatYearMonthUtc(addUtcMonths(selectedMonthStart, -1));
+    const printsGainMonth = toMoney(monthlyPrintsGainMap.get(month) || 0);
+    const printsGainPreviousMonth = toMoney(monthlyPrintsGainMap.get(previousMonth) || 0);
+    const printsGainDiff = toMoney(printsGainMonth - printsGainPreviousMonth);
+    const printsGainDiffPercent =
+      printsGainPreviousMonth > 0
+        ? round1((printsGainDiff / printsGainPreviousMonth) * 100)
+        : printsGainMonth === 0
+        ? 0
+        : null;
     const monthlySeries = [];
     const monthlyPrintsSeries = [];
     for (let index = 0; index < 12; index += 1) {
@@ -752,6 +762,11 @@ router.get('/', async (req, res, next) => {
         spend_month: spendMonth,
         projected_spend_month: projectedSpendMonth,
         gain_month: gainMonth,
+        prints_gain_month: printsGainMonth,
+        prints_gain_previous_month: printsGainPreviousMonth,
+        prints_gain_previous_month_ref: previousMonth,
+        prints_gain_diff: printsGainDiff,
+        prints_gain_diff_percent: printsGainDiffPercent,
         card_spend_month: cardSpendMonth,
         credit_card_planned_month: creditCardPlannedMonth,
         carryover_balance: carryoverBalance,

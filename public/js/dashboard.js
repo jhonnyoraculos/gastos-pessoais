@@ -164,6 +164,8 @@
     els.spendMonth = document.getElementById('metricSpendMonth');
     els.cardSpendMonth = document.getElementById('metricCardSpendMonth');
     els.gainMonth = document.getElementById('metricGainMonth');
+    els.printGainDeltaPercent = document.getElementById('metricPrintGainDeltaPercent');
+    els.printGainDeltaHint = document.getElementById('metricPrintGainDeltaHint');
     els.salaryPercent = document.getElementById('metricSalaryPercent');
     els.estimatedLeft = document.getElementById('metricEstimatedLeft');
     els.realLeft = document.getElementById('metricRealLeft');
@@ -440,6 +442,7 @@
     els.spendMonth.textContent = formatBRL(totals.spend_month || 0);
     els.cardSpendMonth.textContent = formatBRL(totals.card_spend_month || 0);
     els.gainMonth.textContent = formatBRL(totals.gain_month || 0);
+    renderPrintGainDeltaMetric(totals);
     els.salaryPercent.textContent =
       totals.salary_spent_percent === null ? 'Configure seu salario' : formatPercent(totals.salary_spent_percent);
     els.estimatedLeft.textContent = formatBRL(totals.estimated_left || 0);
@@ -875,6 +878,32 @@
     });
   }
 
+  function renderPrintGainDeltaMetric(totals) {
+    if (!els.printGainDeltaPercent || !els.printGainDeltaHint) {
+      return;
+    }
+
+    const current = money(totals.prints_gain_month || 0);
+    const previous = money(totals.prints_gain_previous_month || 0);
+    const diff = money(totals.prints_gain_diff || 0);
+    const percent = totals.prints_gain_diff_percent;
+    const previousMonthRef = totals.prints_gain_previous_month_ref || getPreviousMonth(state.month);
+    const previousMonthLabel = previousMonthRef ? formatMonthLabel(previousMonthRef) : 'mês anterior';
+
+    let headline = '-';
+    if (previous === 0 && current > 0 && percent === null) {
+      headline = 'Sem base';
+    } else if (percent !== null && percent !== undefined && !Number.isNaN(Number(percent))) {
+      headline = formatSignedPercent(Number(percent));
+    }
+
+    els.printGainDeltaPercent.textContent = headline;
+    els.printGainDeltaPercent.classList.remove('positive', 'negative', 'neutral');
+    els.printGainDeltaPercent.classList.add(diff > 0 ? 'positive' : diff < 0 ? 'negative' : 'neutral');
+    els.printGainDeltaHint.textContent =
+      `Diferença: ${formatSignedBRL(diff)} | Atual: ${formatBRL(current)} | ${previousMonthLabel}: ${formatBRL(previous)}`;
+  }
+
   function pieLegendPosition() {
     return window.innerWidth <= 980 ? 'bottom' : 'right';
   }
@@ -1242,6 +1271,37 @@
       month: 'long',
       year: 'numeric',
     });
+  }
+
+  function getPreviousMonth(monthText) {
+    if (!monthText || typeof monthText !== 'string' || !monthText.includes('-')) {
+      return currentMonthISO();
+    }
+    const [year, month] = monthText.split('-').map(Number);
+    if (!year || !month) return currentMonthISO();
+    const date = new Date(year, month - 1, 1);
+    date.setMonth(date.getMonth() - 1);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+
+  function formatSignedBRL(value) {
+    const amount = Number(value || 0);
+    if (!Number.isFinite(amount) || amount === 0) {
+      return formatBRL(0);
+    }
+    const sign = amount > 0 ? '+' : '-';
+    return `${sign}${formatBRL(Math.abs(amount))}`;
+  }
+
+  function formatSignedPercent(value) {
+    const amount = Number(value || 0);
+    if (!Number.isFinite(amount) || amount === 0) {
+      return '0.0%';
+    }
+    const sign = amount > 0 ? '+' : '-';
+    return `${sign}${Math.abs(amount).toFixed(1)}%`;
   }
 
   function money(value) {
