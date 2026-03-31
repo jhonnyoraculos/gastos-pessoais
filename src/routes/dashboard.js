@@ -332,6 +332,20 @@ router.get('/', async (req, res, next) => {
       category: category || null,
       method: method || null,
     });
+    const printsDailyFilters = buildFilterClause({
+      start: monthRange.start,
+      end: monthExpensesEnd,
+      type: type || null,
+      category: null,
+      method: method || null,
+    });
+    const printsMonthlyFilters = buildFilterClause({
+      start: monthlyRangeStart,
+      end: monthlyExpensesEnd,
+      type: type || null,
+      category: null,
+      method: method || null,
+    });
     const incomeMonthFilters = buildIncomeFilterClause({
       start: monthRange.start,
       end: monthRange.end,
@@ -339,7 +353,20 @@ router.get('/', async (req, res, next) => {
       method: method || null,
     });
 
-    const [spendMonthRes, gainMonthRes, reserveMonthRes, byTypeRes, byCategoryRes, byMethodRes, dailyRes, dailyGainRes, monthlyRes, latestRes] = await Promise.all([
+    const [
+      spendMonthRes,
+      gainMonthRes,
+      reserveMonthRes,
+      byTypeRes,
+      byCategoryRes,
+      byMethodRes,
+      dailyRes,
+      dailyPrintsRes,
+      dailyGainRes,
+      monthlyRes,
+      monthlyPrintsRes,
+      latestRes,
+    ] = await Promise.all([
       pool.query(
         `
           SELECT COALESCE(SUM(e.amount), 0) AS total
@@ -408,6 +435,17 @@ router.get('/', async (req, res, next) => {
       ),
       pool.query(
         `
+          SELECT EXTRACT(DAY FROM e.date)::int AS day, COALESCE(SUM(e.amount), 0) AS total
+          ${baseFrom}
+          ${printsDailyFilters.whereClause}
+          AND LOWER(c.name) LIKE '%impress%'
+          GROUP BY day
+          ORDER BY day
+        `,
+        printsDailyFilters.params
+      ),
+      pool.query(
+        `
           SELECT EXTRACT(DAY FROM i.date)::int AS day, COALESCE(SUM(i.amount), 0) AS total
           FROM gp_incomes i
           JOIN gp_categories c ON c.id = i.category_id
@@ -426,6 +464,17 @@ router.get('/', async (req, res, next) => {
           ORDER BY 1
         `,
         monthlyFilters.params
+      ),
+      pool.query(
+        `
+          SELECT to_char(date_trunc('month', e.date), 'YYYY-MM') AS month, COALESCE(SUM(e.amount), 0) AS total
+          ${baseFrom}
+          ${printsMonthlyFilters.whereClause}
+          AND LOWER(c.name) LIKE '%impress%'
+          GROUP BY 1
+          ORDER BY 1
+        `,
+        printsMonthlyFilters.params
       ),
       pool.query(
         `
@@ -498,26 +547,40 @@ router.get('/', async (req, res, next) => {
     });
 
     const dailyMap = new Map(dailyRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
+    const dailyPrintsMap = new Map(dailyPrintsRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
     const dailyGainMap = new Map(dailyGainRes.rows.map((row) => [Number(row.day), toMoney(row.total)]));
     const dailySeries = [];
+    const dailyPrintsSeries = [];
     for (let day = 1; day <= monthRange.daysInMonth; day += 1) {
       dailySeries.push({
         day,
         total_spend: dailyMap.get(day) || 0,
         total_gain: dailyGainMap.get(day) || 0,
       });
+      dailyPrintsSeries.push({
+        day,
+        total_spend: dailyPrintsMap.get(day) || 0,
+      });
     }
 
     const monthlyMap = new Map(
       monthlyRes.rows.map((row) => [row.month, toMoney(row.total)])
     );
+    const monthlyPrintsMap = new Map(
+      monthlyPrintsRes.rows.map((row) => [row.month, toMoney(row.total)])
+    );
     const monthlySeries = [];
+    const monthlyPrintsSeries = [];
     for (let index = 0; index < 12; index += 1) {
       const iterMonth = addUtcMonths(monthlyStart, index);
       const yearMonth = formatYearMonthUtc(iterMonth);
       monthlySeries.push({
         month: yearMonth,
         total_spend: monthlyMap.get(yearMonth) || 0,
+      });
+      monthlyPrintsSeries.push({
+        month: yearMonth,
+        total_spend: monthlyPrintsMap.get(yearMonth) || 0,
       });
     }
 
@@ -637,7 +700,9 @@ router.get('/', async (req, res, next) => {
       by_category: byCategory,
       by_method: byMethod,
       daily_series: dailySeries,
+      daily_prints_series: dailyPrintsSeries,
       monthly_series: monthlySeries,
+      monthly_prints_series: monthlyPrintsSeries,
       latest_expenses: latestRes.rows.map((row) => ({
         id: Number(row.id),
         date: toDateString(row.date),

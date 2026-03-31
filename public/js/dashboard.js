@@ -511,9 +511,19 @@
     const dailyLabels = payload.daily_series.map((item) => String(item.day).padStart(2, '0'));
     const dailyValues = payload.daily_series.map((item) => Number(item.total_spend || 0));
     const dailyGainValues = payload.daily_series.map((item) => Number(item.total_gain || 0));
+    const dailyPrintsSeries = Array.isArray(payload.daily_prints_series) ? payload.daily_prints_series : [];
+    const dailyPrintsValues =
+      dailyPrintsSeries.length > 0
+        ? dailyPrintsSeries.map((item) => Number(item.total_spend || 0))
+        : dailyLabels.map(() => 0);
     const monthlySeries = Array.isArray(payload.monthly_series) ? payload.monthly_series.slice(-state.chartHistoryWindow) : [];
     const monthlyLabels = monthlySeries.map((item) => formatMonthLabel(item.month));
     const monthlyValues = monthlySeries.map((item) => Number(item.total_spend || 0));
+    const monthlyPrintsSeries = Array.isArray(payload.monthly_prints_series)
+      ? payload.monthly_prints_series.slice(-state.chartHistoryWindow)
+      : [];
+    const monthlyPrintsLabels = monthlyPrintsSeries.map((item) => formatMonthLabel(item.month));
+    const monthlyPrintsValues = monthlyPrintsSeries.map((item) => Number(item.total_spend || 0));
     const dailyDatasets = [];
 
     if (state.chartDailyMode !== 'gain') {
@@ -650,6 +660,52 @@
       plugins: [lineValueLabelPlugin],
     });
 
+    renderOrReplaceChart('dailyPrintsChart', document.getElementById('chartDailyPrints'), {
+      type: 'line',
+      data: {
+        labels: dailyLabels,
+        datasets: [
+          {
+            label: 'Impressões por dia',
+            data: dailyPrintsValues,
+            borderColor: '#f472b6',
+            backgroundColor: 'rgba(244, 114, 182, 0.18)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          },
+        ],
+      },
+      options: chartOptions({
+        plugins: {
+          lineValueLabel: {
+            formatter: (value) => formatBRL(value),
+            offsetY: 10,
+            hideZero: true,
+            minValue: 10,
+            maxLabelsPerDataset: 4,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#c8d7f5',
+              callback: (value) => formatBRL(value),
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' },
+          },
+          x: {
+            ticks: { color: '#c8d7f5' },
+            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          },
+        },
+      }),
+      plugins: [lineValueLabelPlugin],
+    });
+
     renderOrReplaceChart('categoryChart', document.getElementById('chartCategory'), {
       type: 'pie',
       data: {
@@ -724,6 +780,52 @@
             offsetY: 10,
             hideZero: true,
             minValue: 20,
+            maxLabelsPerDataset: 6,
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#c8d7f5',
+              callback: (value) => formatBRL(value),
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' },
+          },
+          x: {
+            ticks: { color: '#c8d7f5' },
+            grid: { color: 'rgba(148, 163, 184, 0.08)' },
+          },
+        },
+      }),
+      plugins: [lineValueLabelPlugin],
+    });
+
+    renderOrReplaceChart('monthlyPrintsChart', document.getElementById('chartMonthlyPrints'), {
+      type: 'line',
+      data: {
+        labels: monthlyPrintsLabels,
+        datasets: [
+          {
+            label: 'ImpressÃµes mensais',
+            data: monthlyPrintsValues,
+            borderColor: '#f472b6',
+            backgroundColor: 'rgba(244, 114, 182, 0.18)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          },
+        ],
+      },
+      options: chartOptions({
+        plugins: {
+          lineValueLabel: {
+            formatter: (value) => formatBRL(value),
+            offsetY: 10,
+            hideZero: true,
+            minValue: 10,
             maxLabelsPerDataset: 6,
           },
         },
