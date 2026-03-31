@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
@@ -22,7 +22,7 @@
         <nav class="nav-links">
           <a class="nav-link active" href="/index.html"><span class="nav-icon"></span>Dashboard</a>
           <a class="nav-link" href="/gastos.html"><span class="nav-icon"></span>Gastos</a>
-          <a class="nav-link" href="/config.html"><span class="nav-icon"></span>Configurações</a>
+          <a class="nav-link" href="/config.html"><span class="nav-icon"></span>ConfiguraÃ§Ãµes</a>
         </nav>
       </aside>
 
@@ -30,7 +30,7 @@
         <header class="topbar">
           <div>
             <h2>Dashboard Mensal</h2>
-            <div class="topbar-subtitle">Visão de gastos e percentuais baseados no salário</div>
+            <div class="topbar-subtitle">VisÃ£o de gastos e percentuais baseados no salÃ¡rio</div>
           </div>
           <div class="topbar-actions">
             <input id="monthSelect" type="month" />
@@ -53,24 +53,24 @@
         <main class="content-grid">
           <section class="cards-grid">
             <article class="card">
-              <div class="metric-label">Salário total do mês</div>
+              <div class="metric-label">SalÃ¡rio total do mÃªs</div>
               <div class="metric-value" id="metricSalaryTotal">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Gasto do mês</div>
+              <div class="metric-label">Gasto do mÃªs</div>
               <div class="metric-value" id="metricSpendMonth">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Gasto no cartão (método)</div>
+              <div class="metric-label">Gasto no cartÃ£o (mÃ©todo)</div>
               <div class="metric-value" id="metricCardSpendMonth">R$ 0,00</div>
-              <div class="metric-hint">Somente despesas com método Cartão</div>
+              <div class="metric-hint">Somente despesas com mÃ©todo CartÃ£o</div>
             </article>
             <article class="card">
-              <div class="metric-label">Ganhos do mês</div>
+              <div class="metric-label">Ganhos do mÃªs</div>
               <div class="metric-value" id="metricGainMonth">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">% do salário gasto</div>
+              <div class="metric-label">% do salÃ¡rio gasto</div>
               <div class="metric-value" id="metricSalaryPercent">-</div>
               <div class="metric-hint" id="salaryCta"></div>
             </article>
@@ -79,11 +79,11 @@
               <div class="metric-value" id="metricEstimatedLeft">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Orçamento mensal</div>
+              <div class="metric-label">OrÃ§amento mensal</div>
               <div class="metric-value" id="metricBudget">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Saldo do orçamento</div>
+              <div class="metric-label">Saldo do orÃ§amento</div>
               <div class="metric-value" id="metricBudgetLeft">-</div>
             </article>
             <article class="card">
@@ -95,33 +95,33 @@
               <div class="metric-value" id="metricSpendWeek">R$ 0,00</div>
             </article>
             <article class="card">
-              <div class="metric-label">Saldo atual (salário + ganhos + resgates - aportes - gastos)</div>
+              <div class="metric-label">Saldo atual (salÃ¡rio + ganhos + resgates - aportes - gastos)</div>
               <div class="metric-value" id="metricRealLeft">R$ 0,00</div>
             </article>
           </section>
 
           <section class="panel chart-filters-panel">
             <div class="panel-header">
-              <h3 class="panel-title">Filtros dos gráficos</h3>
-              <div class="footer-note">Ajuste só os gráficos sem mexer nos cards do dashboard.</div>
+              <h3 class="panel-title">Filtros dos grÃ¡ficos</h3>
+              <div class="footer-note">Ajuste sÃ³ os grÃ¡ficos sem mexer nos cards do dashboard.</div>
             </div>
             <div class="chart-filters-grid">
               <div class="field">
-                <label for="chartMethodFilter">Método nos gráficos</label>
+                <label for="chartMethodFilter">MÃ©todo nos grÃ¡ficos</label>
                 <select id="chartMethodFilter">
-                  <option value="">Todos os métodos</option>
+                  <option value="">Todos os mÃ©todos</option>
                   <option value="Pix">Pix</option>
-                  <option value="Cartão">Cartão</option>
+                  <option value="CartÃ£o">CartÃ£o</option>
                   <option value="Dinheiro">Dinheiro</option>
                   <option value="Outro">Outro</option>
                 </select>
               </div>
               <div class="field">
-                <label for="chartDailyModeFilter">Linha diária</label>
+                <label for="chartDailyModeFilter">Linha diÃ¡ria</label>
                 <select id="chartDailyModeFilter">
                   <option value="both">Gastos e ganhos</option>
-                  <option value="spend">Só gastos</option>
-                  <option value="gain">Só ganhos</option>
+                  <option value="spend">SÃ³ gastos</option>
+                  <option value="gain">SÃ³ ganhos</option>
                 </select>
               </div>
               <div class="field">
@@ -132,10 +132,10 @@
                 </select>
               </div>
               <div class="field">
-                <label for="chartHistoryWindowFilter">Histórico mensal</label>
+                <label for="chartHistoryWindowFilter">HistÃ³rico mensal</label>
                 <select id="chartHistoryWindowFilter">
-                  <option value="6">Últimos 6 meses</option>
-                  <option value="12">Últimos 12 meses</option>
+                  <option value="6">Ãšltimos 6 meses</option>
+                  <option value="12">Ãšltimos 12 meses</option>
                 </select>
               </div>
             </div>
@@ -143,42 +143,42 @@
 
           <section class="charts-grid">
             <article class="chart-card">
-              <h3>Distribuição do gasto por tipo</h3>
+              <h3>DistribuiÃ§Ã£o do gasto por tipo</h3>
               <div class="chart-wrap"><canvas id="chartTypeSpend"></canvas></div>
             </article>
             <article class="chart-card">
-              <h3>% do salário por tipo</h3>
+              <h3>% do salÃ¡rio por tipo</h3>
               <div class="chart-wrap"><canvas id="chartTypeSalary"></canvas></div>
             </article>
             <article class="chart-card">
-              <h3>Gastos e ganhos por dia no mês</h3>
+              <h3>Gastos e ganhos por dia no mÃªs</h3>
               <div class="chart-wrap"><canvas id="chartDaily"></canvas></div>
             </article>
             <article class="chart-card">
-              <h3>Impressões por dia no mês</h3>
+              <h3>ImpressÃµes por dia no mÃªs</h3>
               <div class="chart-wrap"><canvas id="chartDailyPrints"></canvas></div>
             </article>
             <article class="chart-card">
-              <h3>Top gasto por categoria no mês</h3>
+              <h3>Top gasto por categoria no mÃªs</h3>
               <div class="chart-wrap"><canvas id="chartCategory"></canvas></div>
             </article>
             <article class="chart-card">
-              <h3>Gasto por método no mês</h3>
+              <h3>Gasto por mÃ©todo no mÃªs</h3>
               <div class="chart-wrap"><canvas id="chartMethod"></canvas></div>
             </article>
             <article class="chart-card chart-wide">
-              <h3>Gastos mensais (últimos 12 meses)</h3>
+              <h3>Gastos mensais (Ãºltimos 12 meses)</h3>
               <div class="chart-wrap"><canvas id="chartMonthly"></canvas></div>
             </article>
             <article class="chart-card chart-wide">
-              <h3>ImpressÃµes mensais</h3>
+              <h3>Impressoes mensais</h3>
               <div class="chart-wrap"><canvas id="chartMonthlyPrints"></canvas></div>
             </article>
           </section>
 
           <section class="panel">
             <div class="panel-header">
-              <h3 class="panel-title">Últimos 10 gastos</h3>
+              <h3 class="panel-title">Ãšltimos 10 gastos</h3>
               <div id="lastRefreshAt" class="footer-note"></div>
             </div>
             <div class="table-wrap">
@@ -186,12 +186,12 @@
                 <thead>
                   <tr>
                     <th>Data</th>
-                    <th>Descrição</th>
+                    <th>DescriÃ§Ã£o</th>
                     <th>Categoria</th>
                     <th>Tipo</th>
-                    <th>Método</th>
+                    <th>MÃ©todo</th>
                     <th>Valor</th>
-                    <th>Ações</th>
+                    <th>AÃ§Ãµes</th>
                   </tr>
                 </thead>
                 <tbody id="latestExpensesBody">
@@ -210,13 +210,13 @@
       <div class="modal-panel">
         <div class="modal-header">
           <div>
-            <h3>Configure seu salário para começar</h3>
-            <p>Sem salário definido os percentuais não podem ser calculados.</p>
+            <h3>Configure seu salÃ¡rio para comeÃ§ar</h3>
+            <p>Sem salÃ¡rio definido os percentuais nÃ£o podem ser calculados.</p>
           </div>
         </div>
         <form id="onboardingForm" class="form-grid two-cols">
           <div class="field">
-            <label for="onboardingNetSalary">Salário líquido (R$)</label>
+            <label for="onboardingNetSalary">SalÃ¡rio lÃ­quido (R$)</label>
             <input id="onboardingNetSalary" type="number" step="0.01" min="0" required />
           </div>
           <div class="field">
@@ -228,7 +228,7 @@
             <input id="onboardingPayday" type="number" min="1" max="28" value="1" />
           </div>
           <div class="field">
-            <label for="onboardingBudget">Orçamento mensal (R$)</label>
+            <label for="onboardingBudget">OrÃ§amento mensal (R$)</label>
             <input id="onboardingBudget" type="number" step="0.01" min="0" value="0" />
           </div>
           <div class="action-row" style="grid-column: 1 / -1">
@@ -245,7 +245,7 @@
             <h3>Editar gasto</h3>
             <p>Atualize os campos e salve.</p>
           </div>
-          <button class="close-btn" data-close-modal="editExpenseModal">×</button>
+          <button class="close-btn" data-close-modal="editExpenseModal">Ã—</button>
         </div>
         <form id="editExpenseForm" class="form-grid two-cols">
           <input id="editExpenseId" type="hidden" />
@@ -258,7 +258,7 @@
             <input id="editAmount" type="number" min="0.01" step="0.01" required />
           </div>
           <div class="field">
-            <label for="editDescription">Descrição</label>
+            <label for="editDescription">DescriÃ§Ã£o</label>
             <input id="editDescription" type="text" maxlength="180" required />
           </div>
           <div class="field">
@@ -266,7 +266,7 @@
             <select id="editCategory" required></select>
           </div>
           <div class="field">
-            <label for="editType">Tipo/Classificação</label>
+            <label for="editType">Tipo/ClassificaÃ§Ã£o</label>
             <select id="editType" required>
               <option value="Essencial">Essencial</option>
               <option value="Besteira">Besteira</option>
@@ -276,16 +276,16 @@
             </select>
           </div>
           <div class="field">
-            <label for="editMethod">Método</label>
+            <label for="editMethod">MÃ©todo</label>
             <select id="editMethod" required>
               <option value="Pix">Pix</option>
-              <option value="Cartão">Cartão</option>
+              <option value="CartÃ£o">CartÃ£o</option>
               <option value="Dinheiro">Dinheiro</option>
               <option value="Outro">Outro</option>
             </select>
           </div>
           <div class="field" style="grid-column: 1 / -1">
-            <label for="editNotes">Observações</label>
+            <label for="editNotes">ObservaÃ§Ãµes</label>
             <textarea id="editNotes" maxlength="1200"></textarea>
           </div>
           <div class="action-row" style="grid-column: 1 / -1">
@@ -315,3 +315,4 @@
     </div>
   </body>
 </html>
+

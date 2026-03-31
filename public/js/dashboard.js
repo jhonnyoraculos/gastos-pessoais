@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const { apiFetch, closeModal, currentMonthISO, formatBRL, formatDateBR, formatPercent, openModal, setLoading, toast } =
     window.UI;
 
@@ -666,7 +666,7 @@
         labels: dailyLabels,
         datasets: [
           {
-            label: 'Impressões por dia',
+            label: 'ImpressÃµes por dia',
             data: dailyPrintsValues,
             borderColor: '#f472b6',
             backgroundColor: 'rgba(244, 114, 182, 0.18)',
@@ -730,7 +730,7 @@
         labels: methodLabels,
         datasets: [
           {
-            label: 'Gasto por método',
+            label: 'Gasto por mÃ©todo',
             data: methodValues,
             backgroundColor: methodColors,
             borderRadius: 6,
@@ -807,7 +807,7 @@
         labels: monthlyPrintsLabels,
         datasets: [
           {
-            label: 'ImpressÃµes mensais',
+            label: 'Impressoes mensais',
             data: monthlyPrintsValues,
             borderColor: '#f472b6',
             backgroundColor: 'rgba(244, 114, 182, 0.18)',
@@ -972,8 +972,8 @@
     els.futureExpensesToggle.setAttribute(
       'title',
       enabled
-        ? 'Contando gastos com data futura no mês selecionado.'
-        : 'Ignorando gastos com data futura (após hoje).'
+        ? 'Contando gastos com data futura no mÃªs selecionado.'
+        : 'Ignorando gastos com data futura (apÃ³s hoje).'
     );
   }
 
@@ -1298,3 +1298,4 @@
       .replace(/'/g, '&#39;');
   }
 })();
+
