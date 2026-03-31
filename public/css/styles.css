@@ -281,6 +281,9 @@ a {
   overflow: auto;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
 }
 
 table {
@@ -368,6 +371,9 @@ textarea {
 }
 
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid transparent;
   border-radius: 11px;
   padding: 10px 14px;
@@ -376,6 +382,7 @@ textarea {
   transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease;
   white-space: nowrap;
   min-height: 44px;
+  text-align: center;
 }
 
 .btn:hover {
@@ -803,7 +810,11 @@ textarea {
   .nav-link {
     justify-content: center;
     padding: 10px 8px;
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+    min-height: 52px;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.15;
   }
 
   .nav-icon {
@@ -826,18 +837,26 @@ textarea {
 
   .topbar-actions {
     width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
+    align-items: stretch;
     gap: 8px;
   }
 
   .topbar-actions > * {
     width: 100%;
-    flex: 1 1 100%;
+    flex: none;
     min-width: 0;
   }
 
+  .topbar > .topbar-actions > .btn:last-child,
+  .topbar > .topbar-actions > a.btn:last-child {
+    grid-column: 1 / -1;
+  }
+
   .cards-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 9px;
   }
 
@@ -870,8 +889,13 @@ textarea {
     width: 100%;
   }
 
+  .panel-header .topbar-actions input[type='text'] {
+    grid-column: 1 / -1;
+  }
+
   .panel-header .topbar-actions .btn {
     justify-content: center;
+    white-space: normal;
   }
 
   .metric-label {
@@ -899,10 +923,27 @@ textarea {
   }
 
   .assistant-panel {
+    left: 10px;
     right: 10px;
     bottom: calc(140px + env(safe-area-inset-bottom));
-    width: calc(100vw - 20px);
+    width: auto;
     max-height: 58vh;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  table {
+    min-width: 600px;
+  }
+
+  .table-dashboard,
+  .table-incomes,
+  .table-reserves {
+    min-width: 520px;
   }
 
   thead th {
@@ -935,6 +976,10 @@ textarea {
     padding: 12px 10px calc(92px + env(safe-area-inset-bottom));
   }
 
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+
   .topbar h2 {
     font-size: 1.05rem;
     line-height: 1.25;
@@ -949,13 +994,27 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .topbar-actions {
+    grid-template-columns: 1fr;
+  }
+
   .topbar-actions .btn {
     width: 100%;
     justify-content: center;
+    white-space: normal;
   }
 
   .chart-wrap {
     height: 195px;
+  }
+
+  table {
+    min-width: 480px;
+  }
+
+  .nav-link {
+    font-size: 0.75rem;
+    padding: 8px 6px;
   }
 
   .assistant-header h3 {
